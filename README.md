@@ -2,6 +2,8 @@
 
 World Timelines is an app that enables a deeper understanding of history by combining maps with chronologies. What technologies were developed where and when? How did borders change over time? Which historical figures from different continents overlapped? Immerse yourself in these questions and limitless others.
 
+![World Timelines screenshot](./screenshot-july-2026.png)
+
 ## Project Basics
 
 This prototype repo has a static single-page web app (SPA), fake data, and a simple webserver.
