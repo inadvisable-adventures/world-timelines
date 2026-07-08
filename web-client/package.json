@@ -1,0 +1,14 @@
+{
+  "name": "world-timelines-web-client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
+    "build:main": "tsc -p tsconfig.json",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "gen-lanesets": "node scripts/gen-lanesets.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Timelines - PROTOTYPE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0f1117; color: #e0e0e0; font-family: system-ui, sans-serif; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       Templates
+  ============================================================ -->
+
+  <template id="app-root-template">
+    <style>
+      :host { display: flex; flex-direction: column; width: 100%; height: 100vh; }
+      .main-row { display: flex; flex: 1 1 0; min-height: 0; }
+      .map-col { flex: 1 1 0; min-width: 0; position: relative; }
+      .sidebar { flex: 0 0 260px; display: flex; flex-direction: column; border-left: 1px solid #1e2030; background: #0d0f18; }
+      .timeline-row { flex: 0 0 380px; min-height: 0; overflow: hidden; border-top: 1px solid #1e2030; position: relative; }
+      world-map { width: 100%; height: 100%; display: block; }
+      world-timeline { width: 100%; height: 100%; display: block; }
+      .top-links {
+        flex: 0 0 auto; padding: 10px 10px 0; font-size: 0.72rem; color: #555;
+        user-select: none; -webkit-user-select: none;
+      }
+      .top-links a { color: #7eb8f7; text-decoration: none; }
+      .top-links a:hover { text-decoration: underline; }
+      category-picker { flex: 0 0 auto; }
+      laneset-picker { flex: 0 0 auto; }
+      query-editor { flex: 1 1 0; min-height: 0; border-top: 1px solid #1e2030; }
+      #results-count {
+        flex: 0 0 auto; padding: 6px 10px; font-size: 0.72rem; color: #555;
+        border-top: 1px solid #1e2030; user-select: none; -webkit-user-select: none;
+      }
+      entry-detail { flex: 0 0 auto; }
+      .loading {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: rgba(15,17,23,0.85); font-size: 1rem; color: #888; pointer-events: none; z-index: 10;
+      }
+      .loading.hidden { display: none; }
+    </style>
+    <div class="main-row">
+      <div class="map-col">
+        <world-map></world-map>
+      </div>
+      <div class="sidebar">
+        <div class="top-links">PROTOTYPE [ <a href="https://github.com/inadvisable-adventures/world-timelines" target="_blank" rel="noopener noreferrer">Code</a> | <a href="./ACKNOWLEDGEMENTS.html" target="_blank" rel="noopener noreferrer">Acknowledgements</a> ]</div>
+        <category-picker></category-picker>
+        <laneset-picker></laneset-picker>
+        <query-editor></query-editor>
+        <div id="results-count"></div>
+        <entry-detail id="entry-detail"></entry-detail>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <world-timeline></world-timeline>
+    </div>
+    <div class="loading" id="loading-overlay">Loading data…</div>
+  </template>
+
+  <template id="world-map-template">
+    <style>
+      :host { display: block; position: relative; }
+      canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+      .tooltip {
+        position: absolute; background: rgba(20,22,30,0.95); border: 1px solid #3a3a5a;
+        border-radius: 4px; padding: 6px 10px; font-size: 0.78rem; pointer-events: none;
+        max-width: 220px; line-height: 1.4; z-index: 20; display: none;
+        user-select: none; -webkit-user-select: none;
+      }
+      .tooltip.visible { display: block; }
+      .tooltip-title { font-weight: 600; color: #d0d0f0; }
+      .tooltip-years { color: #888; font-size: 0.72rem; }
+      .tooltip-desc { color: #b0b0c0; margin-top: 2px; }
+      #box-clear {
+        position: absolute; display: none; align-items: center; justify-content: center;
+        width: 20px; height: 20px; background: rgba(20,22,30,0.9); border: 1px solid #7eb8f7;
+        color: #7eb8f7; border-radius: 3px; font-size: 13px; cursor: pointer; z-index: 30;
+        user-select: none; -webkit-user-select: none;
+      }
+      #box-clear:hover { background: rgba(126,184,247,0.2); }
+      .mini-map-wrap {
+        position: absolute; bottom: 10px; right: 10px; z-index: 30;
+        border: 1px solid #3a3a5a; border-radius: 3px; overflow: hidden;
+        background: #1a2035;
+      }
+      #mini-canvas { display: block; cursor: crosshair; width: 150px; height: 75px; }
+      .mini-map-btns {
+        display: flex; border-top: 1px solid #3a3a5a;
+      }
+      .mini-map-btns button {
+        flex: 1; height: 22px; background: rgba(20,22,30,0.9); border: none;
+        border-right: 1px solid #3a3a5a; color: #c0c8e0; cursor: pointer;
+        font-size: 11px; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      .mini-map-btns button:last-child { border-right: none; }
+      .mini-map-btns button:hover { background: rgba(126,184,247,0.1); color: #7eb8f7; }
+      .mini-map-btns button.hidden { display: none; }
+    </style>
+    <canvas></canvas>
+    <div class="tooltip" id="tooltip">
+      <div class="tooltip-title" id="tooltip-title"></div>
+      <div class="tooltip-years" id="tooltip-years"></div>
+      <div class="tooltip-desc" id="tooltip-desc"></div>
+    </div>
+    <div id="box-clear">×</div>
+    <div class="mini-map-wrap">
+      <canvas id="mini-canvas"></canvas>
+      <div class="mini-map-btns">
+        <button id="zoom-full" class="hidden">Full</button>
+        <button id="zoom-fit" class="hidden">Fit</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="world-timeline-template">
+    <style>
+      :host { display: block; position: relative; background: #0a0c12; }
+      canvas { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-select: none; }
+      .tooltip {
+        position: absolute; background: rgba(20,22,30,0.95); border: 1px solid #3a3a5a;
+        border-radius: 4px; padding: 6px 10px; font-size: 0.78rem; pointer-events: none;
+        max-width: 220px; line-height: 1.4; z-index: 20; display: none;
+        user-select: none; -webkit-user-select: none;
+      }
+      .tooltip.visible { display: block; }
+      .tooltip-title { font-weight: 600; color: #d0d0f0; }
+      .tooltip-years { color: #888; font-size: 0.72rem; }
+      #time-sel-clear {
+        position: absolute; top: 2px; display: none; align-items: center; justify-content: center;
+        width: 18px; height: 18px; background: rgba(20,22,30,0.9); border: 1px solid #7eb8f7;
+        color: #7eb8f7; border-radius: 3px; font-size: 12px; cursor: pointer; z-index: 30;
+        user-select: none; -webkit-user-select: none;
+      }
+      #time-sel-clear:hover { background: rgba(126,184,247,0.2); }
+      #fit-btn {
+        position: absolute; right: 6px; bottom: 24px; z-index: 30;
+        display: flex; align-items: center; gap: 3px; padding: 2px 8px;
+        background: rgba(20,22,30,0.9); border: 1px solid #3a4060; color: #9fb4e0;
+        border-radius: 3px; font-size: 11px; cursor: pointer; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #fit-btn:hover { background: rgba(126,184,247,0.16); color: #cfe0ff; border-color: #5a6690; }
+    </style>
+    <canvas></canvas>
+    <div class="tooltip" id="tooltip">
+      <div class="tooltip-title" id="tooltip-title"></div>
+      <div class="tooltip-years" id="tooltip-years"></div>
+    </div>
+    <div id="time-sel-clear">×</div>
+    <button id="fit-btn" title="Fit view to selection, or select the current view">⤢ fit</button>
+  </template>
+
+  <template id="entry-detail-template">
+    <style>
+      :host { display: block; border-top: 1px solid #1e2030; padding: 10px; background: #0d0f18; }
+      :host(.hidden) { display: none; }
+      .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+      .title a {
+        color: #d0d0f0; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+        word-break: break-word; line-height: 1.3;
+      }
+      .title a:hover { text-decoration: underline; color: #7eb8f7; }
+      #close-btn {
+        flex: 0 0 auto; background: none; border: none; color: #555; cursor: pointer;
+        font-size: 14px; padding: 0; line-height: 1; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #close-btn:hover { color: #c0c0e0; }
+      .meta { margin-top: 4px; font-size: 0.7rem; color: #888; }
+      #detail-cat {
+        display: inline; border: 1px solid; border-radius: 8px; padding: 1px 6px;
+        margin-right: 6px; font-size: 0.68rem;
+      }
+      #detail-desc {
+        margin-top: 6px; font-size: 0.73rem; color: #8a8a9a; line-height: 1.4;
+        display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+      }
+    </style>
+    <div class="header">
+      <div class="title"><a id="detail-link" href="#" target="_blank" rel="noopener noreferrer"></a></div>
+      <button id="close-btn">×</button>
+    </div>
+    <div class="meta"><span id="detail-cat"></span><span id="detail-years"></span></div>
+    <div id="detail-desc"></div>
+  </template>
+
+  <template id="category-picker-template">
+    <style>
+      :host { display: block; padding: 12px 10px 8px; }
+      .label {
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #555; margin-bottom: 8px; user-select: none; -webkit-user-select: none;
+      }
+      #chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip {
+        border: 1px solid var(--color); background: transparent; color: var(--color);
+        border-radius: 12px; padding: 3px 10px; font-size: 0.72rem; cursor: pointer;
+        transition: background 0.12s; user-select: none; -webkit-user-select: none;
+        font-family: inherit;
+      }
+      .chip.selected { background: var(--color); color: #0a0c12; }
+      .chip:hover { opacity: 0.85; }
+    </style>
+    <div class="label">Categories</div>
+    <div id="chip-list"></div>
+  </template>
+
+  <template id="laneset-picker-template">
+    <style>
+      :host { display: block; padding: 4px 10px 10px; position: relative; }
+      .label {
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #555; margin-bottom: 6px; user-select: none; -webkit-user-select: none;
+      }
+      #current {
+        width: 100%; text-align: left; background: #11141f; color: #c0c8e0;
+        border: 1px solid #2a2e42; border-radius: 4px; padding: 6px 10px;
+        font-size: 0.76rem; cursor: pointer; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #current::after { content: '▾'; float: right; color: #6a7290; }
+      #current:hover { border-color: #3a4060; }
+      .popup {
+        position: absolute; left: 10px; right: 10px; z-index: 40;
+        margin-top: 3px; background: #11141f; border: 1px solid #2a2e42;
+        border-radius: 4px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      }
+      .popup.hidden { display: none; }
+      .item {
+        display: block; width: 100%; text-align: left; background: transparent;
+        border: none; border-bottom: 1px solid #1c2032; padding: 7px 10px;
+        cursor: pointer; font-family: inherit;
+      }
+      .item:last-child { border-bottom: none; }
+      .item:hover { background: rgba(126,184,247,0.08); }
+      .item.selected { background: rgba(126,184,247,0.14); }
+      .item-name { font-size: 0.76rem; color: #d0d0f0; }
+      .item-desc { font-size: 0.67rem; color: #7a7f95; line-height: 1.35; margin-top: 2px; }
+    </style>
+    <div class="label">Laneset</div>
+    <button id="current"></button>
+    <div id="popup" class="popup hidden"></div>
+  </template>
+
+  <template id="query-editor-template">
+    <style>
+      :host { display: flex; flex-direction: column; overflow: hidden; }
+      .label {
+        flex: 0 0 auto; padding: 10px 10px 6px;
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #555; user-select: none; -webkit-user-select: none;
+      }
+      textarea {
+        flex: 0 0 auto; width: 100%; resize: none; overflow-y: auto;
+        background: #080a10; color: #c0c8e0; border: none; outline: none;
+        font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.75rem; line-height: 1.55; padding: 8px 10px;
+        caret-color: #7eb8f7; min-height: 60px; max-height: 200px;
+        border-bottom: 1px solid #1e2030; box-sizing: border-box;
+      }
+      .examples-label {
+        flex: 0 0 auto; padding: 8px 10px 2px;
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #333a52; user-select: none; -webkit-user-select: none;
+      }
+      .hints { flex: 1 1 0; overflow-y: auto; padding: 0 0 4px; }
+      .hint {
+        padding: 2px 10px; cursor: pointer;
+        font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.72rem; line-height: 1.7; color: #2a3050;
+        user-select: none; -webkit-user-select: none;
+      }
+      .hint:hover { color: #4a5880; background: rgba(126,184,247,0.05); }
+    </style>
+    <div class="label">Query</div>
+    <textarea id="dsl-textarea" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+    <div class="examples-label">Examples</div>
+    <div class="hints" id="hints"></div>
+  </template>
+
+  <!-- ============================================================
+       App
+  ============================================================ -->
+  <app-root></app-root>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

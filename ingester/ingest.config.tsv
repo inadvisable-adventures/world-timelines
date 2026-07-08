@@ -1,0 +1,41 @@
+# Ingester filter configuration. One setting per line: KEY<TAB>VALUE.
+# Lines beginning with # are comments. All settings are optional.
+# Priority: CLI flag > config file setting > hardcoded default.
+#
+# Output paths (override --output, --partial, --status-log, --runs-log, --catalog)
+catalog_input	infobox-catalog.tsv
+# output	collected_entries.tsv
+# partial	collected_entries.tsv.partial
+# status_log	ingest_status.tsv
+# runs_log	ingest_runs.json
+# catalog	infobox-catalog.tsv
+#
+# Binary stream-offset cache (skips ~25s bz2 index decode on start/restart).
+# Build/refresh eagerly with: npm run build-offset-cache -- <index.txt.bz2>
+# offset_cache	stream-offsets.bin
+#
+# Sampling: process every Nth stream for even alphabetical coverage (default: 1 = all streams).
+# If stop_after_collecting is set and not reached after a full pass, halve stride and retry
+# up to max_restarts times, incrementing start by 1 each time to fill gaps between passes.
+# stream_stride	100
+# max_restarts	2
+#
+# Limits: stop early after N considered or N collected entries
+# stop_after_considering	10000
+# stop_after_collecting	1000
+#
+# Category exclusions (repeatable): skip all entries in a category
+exclude_category	other
+# exclude_category	pol_mil_organization
+#
+# Date range (inclusive, in years CE; negative = BCE)
+# date_after	-3000
+date_before	2000
+#
+# Reject entries with no extractable coordinates (map-focused dataset).
+exclude_no_coords	1
+#
+# Per-infobox-type birth-year cap: reject if the entry's start year (birth date
+# for person/officeholder infoboxes) exceeds the cap. Format: <type><TAB><year>.
+max_birth_year	person	1899
+max_birth_year	officeholder	1899

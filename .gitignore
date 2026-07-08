@@ -1,0 +1,26 @@
+# Dependencies and build output
+**/node_modules/
+**/dist/
+
+# web-client compiled output (tsc outDir is web-client/public/, alongside static assets)
+web-client/public/**/*.js
+web-client/public/**/*.js.map
+
+# Vim swap files
+*.swp
+*.swo
+
+# Wikipedia dump (large download, managed separately)
+en_wiki_download/
+
+# Test data (large binary files)
+test-data/
+
+# Backup files
+*.bak
+
+# MacOS
+**/.DS_Store
+
+# https://github.com/inadvisable-adventures/desk
+.desk_temp/

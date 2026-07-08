@@ -1,0 +1,18 @@
+{
+  "name": "world-timelines-ingester",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lookup": "node dist/lookup.js",
+    "extract-eras": "node dist/extract-eras.js",
+    "build-offset-cache": "node dist/build-offset-cache.js",
+    "coord-sample": "node dist/coord-sample.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  }
+}
