@@ -1,4 +1,11 @@
-# PostgreSQL + PostGIS schema for world timelines data
+# PostgreSQL + PostGIS schema for world timelines data — COMPLETED
+
+## Result (2026-07-11)
+
+Implemented as designed: `db/schema.sql` (idempotent, `CREATE ... IF NOT
+EXISTS` throughout) and `db/README.md`. Smoke-tested against a scratch
+Postgres 18 cluster — applies cleanly, and re-running it is a clean no-op
+(`NOTICE: ... already exists, skipping` for every object, no errors).
 
 ## Summary
 
