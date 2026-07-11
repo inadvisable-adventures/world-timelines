@@ -282,7 +282,7 @@ export class TimelineElement extends HTMLElement {
     }
     this.laneset.lanes.forEach((lane: Lane, i) => {
       out.push({
-        id: lane.id, name: lane.name, description: lane.description,
+        id: lane.slug, name: lane.name, description: lane.description,
         color: LANE_PALETTE[i % LANE_PALETTE.length], isGlobal: false,
         eraSourceSet: new Set(lane.eraSources ?? []),
       });

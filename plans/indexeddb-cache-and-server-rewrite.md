@@ -1,4 +1,39 @@
-# IndexedDB caching: rewrite web client + local-concept-server
+# IndexedDB caching: rewrite web client + local-concept-server — COMPLETED
+
+## Result (2026-07-11)
+
+Implemented largely as designed, with two corrections found during
+end-to-end testing (both fixed, both verified):
+
+1. **psql `-v`/`:'name'` substitution doesn't apply to `-c` command
+   strings** — confirmed empirically (works via `-f`, not `-c`). `db.ts`
+   still exposes the same `:'name'` placeholder syntax to callers, but
+   substitutes values itself in JS with standard SQL-literal (`''`-doubling)
+   escaping before invoking `psql -c`, rather than relying on psql's own
+   substitution. Same safety property (no raw concatenation of user input
+   into SQL), no per-query temp file needed.
+2. **Query results initially included historical eras as regular entries**
+   (100 results instead of 43) — because both share the `entries` table.
+   Fixed by adding `NOT (category='historical_period' AND has a '-history'
+   tag)` to `listEntries`'s WHERE clause, restoring the original
+   architecture's separation between the queryable entry/marker set and the
+   timeline's era bands (`listEras` keeps the non-negated condition).
+
+Verified end-to-end with a Playwright-driven headless Chromium session
+against the real local-concept-server + local Postgres: initial load shows
+43 entries (matching the original sample count) with map markers and
+timeline era bands rendering correctly; switching lanesets
+(`continents` → `landmasses`) re-renders lanes and updates the DSL line;
+`filter category: place` narrows results to 4 and highlights the right
+category chip; IndexedDB (`world-timelines` DB, `entries`/`lanesets`
+stores) populates after the first load and persists across a page reload
+with no console errors or failed `/api/*` requests. Screenshots and the
+driver script are in the session scratchpad (not committed — one-off
+verification, not a project test).
+
+Also deleted `web-client/src/worker/tsv-parser.ts` (dead code — nothing
+imports it once the worker fetches from the API instead of parsing a
+static TSV file).
 
 ## Summary
 

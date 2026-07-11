@@ -17,10 +17,9 @@ I have some simple development guidelines for Claude, which are applicable to hu
 development-process.md describes the development process I asked Claude to use; it is probably a bit cumbersome for humans, but Claude was fine with it.
 If there were other humans involved, I probably would have used a more traditional work-management system, as much as I enjoyed the nimbleness of having all of the process in one place.
 
-### Fake backend for now
+### Backend
 
-The data will be stored and transmitted to the client in compact TSV files and all queries will be run on the client.
-Eventually, we'll move the data to a database in the cloud to avoid large downloads for clients.
+Data lives in a local PostgreSQL + PostGIS database (see `db/`). `local-concept-server` serves a small JSON API backed by that database (querying it by shelling out to the `psql` CLI), and the web client caches entries/eras/lanesets locally in IndexedDB, only fetching what's missing or stale. See `plans/indexeddb-cache-and-server-rewrite.md` for the design.
 
 This prototype has ingestion of wikipedia dumps.
 
@@ -34,7 +33,16 @@ The download goes much faster as a torrent if you can do that <https://meta.wiki
 
 ## Running the Web Client (Local)
 
-The web client is a static SPA. A small local server is included at `web-client/local-concept-server/` that serves it correctly (proper MIME types, SPA fallback to `index.html`).
+The web client is a SPA served by a small local server at `web-client/local-concept-server/`, which also exposes a JSON API (`/api/entries`, `/api/lanesets`, etc.) backed by a local PostgreSQL + PostGIS database.
+
+### Database (one-time setup, then as needed)
+
+```bash
+brew install postgresql@18 postgis   # one-time; see plans/install-local-postgres.md
+bash db/init-db.sh                   # creates/starts the local cluster, applies the schema, seeds it
+```
+
+See `db/README.md`. Safe to re-run `db/init-db.sh` any time (it reloads the seed data, not the database itself).
 
 ### Build
 
@@ -56,6 +64,8 @@ npm start
 ```
 
 Opens at `http://localhost:4242` by default. Override the port with `PORT=8080 npm start`.
+
+If `psql` isn't on your `PATH` (Homebrew's `postgresql@18` is keg-only), point at it explicitly: `PSQL_BIN=/opt/homebrew/opt/postgresql@18/bin/psql npm start`. `PGHOST`/`PGDATABASE` default to the local cluster created by `db/init-db.sh` (`db/.pgdata`, database `world_timelines`) and don't need to be set for local dev.
 
 ---
 

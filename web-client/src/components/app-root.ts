@@ -1,5 +1,7 @@
 import type { EventCategory, HistoricalEra, HistoricalEvent, Laneset, WorkerInMessage, WorkerOutMessage } from '../types/index.js';
 import { parseDsl } from '../worker/dsl-parser.js';
+import { openCache, resolveViaCache, ENTRIES_STORE, LANESETS_STORE } from '../cache/idb-cache.js';
+import { fetchEntriesByIds, fetchLanesetsByIds, fetchSlim } from '../cache/api-client.js';
 import type { GeoFilter, WorldMapElement } from './world-map.js';
 import type { TimelineElement } from './timeline.js';
 import type { CategoryPickerElement } from './category-picker.js';
@@ -55,16 +57,20 @@ export class AppRootElement extends HTMLElement {
   }
 
   private async loadEras(): Promise<void> {
-    const url = new URL('./data/historical_eras.tsv', location.href).href;
-    const text = await fetch(url).then(r => r.text());
-    const eras = parseErasTsv(text);
-    this.timelineEl.setEras(eras);
+    // Eras are entries with category='historical_period' and a '-history'
+    // tag (see db/schema.sql) — fetched as slim {id, lastUpdated} pairs,
+    // resolved via the entries cache, then reduced to the HistoricalEra
+    // shape the timeline expects.
+    const slim = await fetchSlim('/api/eras');
+    const db = await openCache();
+    const entries = await resolveViaCache<HistoricalEvent>(db, ENTRIES_STORE, slim, fetchEntriesByIds);
+    this.timelineEl.setEras(entries.map(toEra));
   }
 
   private async loadLanesets(): Promise<void> {
-    const url = new URL('./data/lanesets.json', location.href).href;
-    const doc = await fetch(url).then(r => r.json()) as { lanesets: Laneset[] };
-    this.lanesets = doc.lanesets ?? [];
+    const slim = await fetchSlim('/api/lanesets');
+    const db = await openCache();
+    this.lanesets = await resolveViaCache<Laneset>(db, LANESETS_STORE, slim, fetchLanesetsByIds);
     this.lanesetPickerEl.setLanesets(this.lanesets);
     this.lanesetPickerEl.setSelected(this.activeLanesetId);
     this.applyActiveLaneset();
@@ -94,7 +100,7 @@ export class AppRootElement extends HTMLElement {
   private applyActiveLaneset(): void {
     const active = this.activeLanesetId === 'none'
       ? null
-      : this.lanesets.find(l => l.id === this.activeLanesetId) ?? this.lanesets[0] ?? null;
+      : this.lanesets.find(l => l.slug === this.activeLanesetId) ?? this.lanesets[0] ?? null;
     this.timelineEl.setLaneset(active);
   }
 
@@ -105,10 +111,7 @@ export class AppRootElement extends HTMLElement {
   private initWorker(): void {
     this.worker = new Worker('./worker/query-worker.js', { type: 'module' });
     this.worker.addEventListener('message', this.onWorkerMessage.bind(this));
-    const msg: WorkerInMessage = {
-      type: 'init',
-      dataUrl: new URL('./data/collected_entries.sample.tsv', location.href).href,
-    };
+    const msg: WorkerInMessage = { type: 'init' };
     this.worker.postMessage(msg);
   }
 
@@ -258,38 +261,25 @@ export class AppRootElement extends HTMLElement {
     this.timelineEl.selectLane(id);
     this.detailEl.showLane(name, description);
     // Outline the lane's geometry on the map (global lane spans the world → no outline).
-    const active = this.lanesets.find(l => l.id === this.activeLanesetId);
-    const lane = active?.lanes.find(l => l.id === id);
+    const active = this.lanesets.find(l => l.slug === this.activeLanesetId);
+    const lane = active?.lanes.find(l => l.slug === id);
     this.mapEl.setLaneOutline(lane ? lane.geometry : null);
   }
 }
 
-function parseErasTsv(text: string): HistoricalEra[] {
-  const lines = text.split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split('\t');
-  const col = (name: string) => headers.indexOf(name);
-  const idCol = col('id');
-  const titleCol = col('title');
-  const startCol = col('start_year');
-  const endCol = col('end_year');
-  const tagsCol = col('tags');
-  const eras: HistoricalEra[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split('\t');
-    if (parts.length < 5) continue;
-    const startYear = parseInt(parts[startCol], 10);
-    const endYear = parseInt(parts[endCol], 10);
-    if (isNaN(startYear) || isNaN(endYear)) continue;
-    let source = 'world-history';
-    try {
-      const tags: string[] = JSON.parse(parts[tagsCol] ?? '[]');
-      const srcTag = tags.find(t => t.endsWith('-history'));
-      if (srcTag) source = srcTag;
-    } catch { /* use default */ }
-    eras.push({ id: parts[idCol], title: parts[titleCol], startYear, endYear, source });
-  }
-  return eras;
+// An era is an entry with category='historical_period' and a tag ending in
+// '-history' (see db/schema.sql); `source` drives which lane's era band it
+// renders in (default 'world-history' → the synthetic Global lane).
+function toEra(entry: HistoricalEvent): HistoricalEra {
+  const srcTag = entry.tags.find(t => t.endsWith('-history'));
+  return {
+    id: entry.id,
+    title: entry.title,
+    startYear: entry.startDate.startYear,
+    endYear: entry.startDate.endYear,
+    source: srcTag ?? 'world-history',
+    lastUpdated: entry.lastUpdated,
+  };
 }
 
 function setDslLine(dsl: string, pattern: RegExp, newLine: string): string {

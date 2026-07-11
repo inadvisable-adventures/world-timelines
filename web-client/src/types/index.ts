@@ -75,7 +75,7 @@ export interface EventDate {
 // ---------------------------------------------------------------------------
 
 export interface HistoricalEvent {
-  id: string;
+  id: string;                   // Postgres UUID
   title: string;
   locations: EventLocation[];   // zero or more; first = primary (if any)
   startDate: EventDate;
@@ -84,6 +84,7 @@ export interface HistoricalEvent {
   infoboxType: string;          // Wikipedia infobox type; '' for hand-crafted
   description: string;
   tags: string[];               // e.g. ['no-coords-found']
+  lastUpdated: string;          // ISO 8601; drives the IndexedDB cache
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +114,8 @@ export function primaryLng(event: HistoricalEvent): number | null {
 }
 
 // ---------------------------------------------------------------------------
-// Historical era (loaded from historical_eras.tsv for timeline visualization)
+// Historical era (an entry with category='historical_period' and a tag
+// ending in '-history' — see db/schema.sql; fetched via /api/eras)
 // ---------------------------------------------------------------------------
 
 export interface HistoricalEra {
@@ -122,6 +124,7 @@ export interface HistoricalEra {
   startYear: number;
   endYear: number;
   source: string;  // e.g. "world-history" | "china-history" | "egypt-history" | ...
+  lastUpdated: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +136,8 @@ export interface HistoricalEra {
 export type MultiPolygon = Array<Array<Array<[number, number]>>>;
 
 export interface Lane {
-  id: string;
+  id: string;    // Postgres UUID — cache key / by-ids fetch only
+  slug: string;  // stable human-referenced id, e.g. 'africa' — used by the DSL/UI
   name: string;
   description: string;
   geometry: MultiPolygon;
@@ -141,13 +145,16 @@ export interface Lane {
   // Optional: era sources that map to this lane (e.g. ['rome-history']). The
   // synthetic top lane 'global' carries world-history eras.
   eraSources?: string[];
+  lastUpdated: string;
 }
 
 export interface Laneset {
-  id: string;
+  id: string;    // Postgres UUID — cache key / by-ids fetch only
+  slug: string;  // stable human-referenced id, e.g. 'continents' — used by the DSL/picker
   name: string;
   description: string;
   lanes: Lane[];
+  lastUpdated: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +175,6 @@ export type DslFilter =
 
 export interface InitRequest {
   type: 'init';
-  dataUrl: string;
 }
 
 export interface GeoFilter {
@@ -189,7 +195,6 @@ export type WorkerInMessage = InitRequest | QueryRequest;
 
 export interface ReadyResponse {
   type: 'ready';
-  count: number;
 }
 
 export interface QueryResponse {

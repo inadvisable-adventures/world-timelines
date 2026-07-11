@@ -2,21 +2,20 @@
 
 ## Overview
 
-The POC is a fully client-side SPA that lets users explore historical events on an interactive world map linked to a horizontal timeline. There is no server; all data is stored in compact TSV files loaded at runtime, and all queries are processed in a WebWorker.
+The POC is a client-side SPA that lets users explore historical events on an interactive world map linked to a horizontal timeline. Data lives in a local PostgreSQL + PostGIS database; a small local server (`local-concept-server`) exposes it as a JSON API, and the client caches entries/eras/lanesets locally in IndexedDB, fetching only what's missing or stale. Queries are still assembled and reconciled with the cache in a WebWorker, but the actual filtering (category/year/text/geo) now runs as SQL against Postgres rather than an in-memory array scan. See `plans/indexeddb-cache-and-server-rewrite.md` for the migration from the original fully-static, TSV-in-a-WebWorker design.
 
 ## Goals
 
 - Demonstrate the core interaction: map + timeline + query editor synchronized together.
-- Show that client-side querying of TSV data in a WebWorker is fast enough for real use.
+- Show that a local Postgres + PostGIS-backed query, combined with an IndexedDB cache, is fast enough for real use and avoids re-fetching unchanged data.
 - Establish the data schema for historical events so the ingester can be built against it.
-- Run as a fully static website (open `index.html` via a local HTTP server).
+- Run locally against a self-contained local database (`db/init-db.sh`) and local server (`local-concept-server`).
 
 ## Non-Goals (POC)
 
-- No user accounts, persistence, or sharing.
-- No server-side search or geospatial indexing.
+- No user accounts, sharing, or multi-user concerns — the local database and cache are single-user/single-machine.
 - No zoom-level aggregation (events shown individually regardless of density).
-- No full Wikipedia data integration yet (uses sample data; ingester is a separate concern).
+- No full Wikipedia data integration yet (uses sample data; ingester is a separate concern that still produces TSV files, which `db/seed.mjs` loads into Postgres).
 
 ---
 
@@ -43,32 +42,55 @@ The POC is a fully client-side SPA that lets users explore historical events on 
 │  │  │              <world-timeline>               │   │   │   │
 │  │  └──────────────────────┬─────────────────────┘   │   │   │
 │  └─────────────────────────┼──────────────────────────┘   │   │
+│  loadEras()/loadLanesets(): fetch /api/eras, /api/lanesets   │   │
+│  (slim {id,lastUpdated} lists) → cache/idb-cache.ts diff     │   │
+│  against IndexedDB → cache/api-client.ts fetches only        │   │
+│  missing/stale ids via .../by-ids                            │   │
 │                             │ postMessage                   │   │
 └─────────────────────────────┼───────────────────────────────┘
                               │
 ┌─────────────────────────────▼───────────────────────────────┐
 │                         WebWorker                            │
 │  query-worker.ts                                             │
-│    ├─ tsv-parser.ts    (load + parse TSV)                    │
-│    └─ dsl-parser.ts    (parse filter DSL)                    │
-│                                                              │
-│  Static assets: public/data/events.tsv                       │
+│    ├─ dsl-parser.ts       (parse filter DSL)                 │
+│    └─ cache/idb-cache.ts  (diff against IndexedDB, same      │
+│         algorithm as the main thread's era/laneset loading)  │
+│  fetch GET /api/entries (slim list) →                        │
+│  fetch POST /api/entries/by-ids for cache misses only        │
+└─────────────────────────────┬──────────────────────────────┘
+                              │ HTTP (same-origin)
+┌─────────────────────────────▼───────────────────────────────┐
+│                  local-concept-server (Node)                 │
+│  server.ts routes /api/* to api/entries.ts, api/lanesets.ts; │
+│  everything else served as static files from public/.        │
+│  db.ts: talks to Postgres by shelling out to `psql` (no      │
+│  driver dependency), safely interpolating values as SQL      │
+│  string literals rather than concatenating raw input.        │
+└─────────────────────────────┬──────────────────────────────┘
+                              │ psql (Unix socket)
+┌─────────────────────────────▼───────────────────────────────┐
+│         Local PostgreSQL + PostGIS (db/.pgdata)              │
+│  entries, entry_locations (geometry), lanesets, lanes         │
+│  (geometry) — see db/schema.sql                               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ### Communication Protocol
 
-**Main → Worker:**
+**Main ↔ Worker** (`web-client/src/types/index.ts`):
 ```ts
-type InitRequest   = { type: 'init'; dataUrl: string };
-type QueryRequest  = { type: 'query'; dsl: string; timeRange: [number, number]; limit: number };
-```
-
-**Worker → Main:**
-```ts
-type ReadyResponse = { type: 'ready'; count: number };
+type InitRequest   = { type: 'init' };
+type QueryRequest  = { type: 'query'; dsl: string; timeRange: [number, number]; geoFilter?: GeoFilter | null };
+type ReadyResponse = { type: 'ready' };
 type QueryResponse = { type: 'results'; events: HistoricalEvent[] };
 ```
+
+**Worker/Main ↔ local-concept-server** (`GET`/`POST /api/...`, see
+`plans/indexeddb-cache-and-server-rewrite.md` for the full contract):
+- `GET /api/entries?...filters` / `GET /api/eras` / `GET /api/lanesets` → slim `{id, lastUpdated}[]` lists only.
+- `POST /api/entries/by-ids` / `POST /api/lanesets/by-ids` with `{ids: string[]}` → full records for exactly those ids.
+
+This slim-list/by-ids split is what lets the IndexedDB cache avoid re-fetching full records for anything it already has fresh — every query still asks the server which ids are current, but only fetches the bodies it's missing.
 
 ---
 
@@ -120,35 +142,37 @@ interface EventDate {
 
 Precision is set only as warranted: a year-range expression yields 0 for month/day fields.
 
-### `HistoricalEvent` (runtime type, in TSV + in memory)
+### `HistoricalEvent` (runtime type, fetched via the API; stored in Postgres)
 
 | Field          | Type             | Description                                                  |
 |----------------|------------------|--------------------------------------------------------------|
-| id             | string           | Unique slug (Wikipedia page title slug from ingester)         |
+| id             | string           | Postgres UUID (drives the IndexedDB cache and by-ids fetch)   |
 | title          | string           | Display name                                                  |
-| locations      | EventLocation[]  | One or more geographic locations (serialized as JSON in TSV)  |
+| locations      | EventLocation[]  | One or more geographic locations                              |
 | startDate      | EventDate        | Start date with full denormalized structure                   |
 | endDate        | EventDate \| null | null if startDate is also the end date                       |
 | category       | EventCategory    | person / event / place / artifact / pol_mil_organization / business / historical_period / concepts / other |
 | infoboxType    | string           | Wikipedia infobox template name (empty for hand-crafted data) |
 | description    | string           | Short description (1–2 sentences)                             |
+| tags           | string[]         | e.g. `['no-coords-found']`; a tag ending in `-history` plus `category='historical_period'` marks an entry as a historical era |
+| lastUpdated    | string           | ISO 8601 timestamp; the cache-freshness signal                |
 
-### TSV Format
+### TSV seed format (`db/seed.mjs` input; not fetched by the running app)
 
-16 tab-separated columns, header row first:
+Entries and historical eras (the same shape — see `db/schema.sql`) are loaded into Postgres from 17 tab-separated columns, header row first:
 
 ```
 id  title  locations  start_year  start_month  start_day  end_year  end_month  end_day
-start_expr  end_expr  calendar  uncertainty_years  category  infobox_type  description
+start_expr  end_expr  calendar  uncertainty_years  category  infobox_type  description  tags
 ```
 
-`locations` is compact (single-line) JSON; double quotes inside do not conflict with TSV since the format does not use cell quoting. Tabs and newlines within any field are escaped as `\t` / `\n`.
+`locations` and `tags` are compact (single-line) JSON; double quotes inside do not conflict with TSV since the format does not use cell quoting. Tabs and newlines within any field are escaped as `\t` / `\n`. This format is the ingester's output and `db/seed.mjs`'s input — it is no longer transmitted to the browser; the running app talks to `local-concept-server`'s JSON API instead (see [Architecture](#architecture)).
 
 ---
 
 ## Query DSL (Answer to TODO #9)
 
-The query editor accepts a multi-line text DSL. The default result is the 100 most-recently-indexed events. Each `filter` line narrows the result further; all lines are ANDed together. The final set is capped at 100.
+The query editor accepts a multi-line text DSL. The default result is the first 100 events (server-ordered by start year), fetched as a slim `{id, lastUpdated}` list and resolved against the IndexedDB cache — see [Architecture](#architecture). Each `filter` line narrows the result further; all lines are ANDed together. The final set is capped at 100 by default (up to a server-enforced hard max of 500).
 
 **Syntax:**
 
@@ -176,7 +200,7 @@ A non-filter directive, `laneset <id>` / `laneset none`, selects the timeline's 
 
 ### Lanes & lanesets (TODO #65)
 
-`public/data/lanesets.json` (generated by `web-client/scripts/gen-lanesets.mjs` from the vendored Natural Earth polygons + custom rectangles, RDP-simplified) defines several **lanesets**, each a division of Earth's surface into **lanes** with geometry, a display name, and a description. Built-in lanesets: `continents` (default), `landmasses`, `global-regions`, and `cradles` (cradles of civilization + an "Outside the cradles" catch-all). Lanes tile the globe (land lanes precede ocean lanes so land wins during assignment). Each lane may map one or more historical-era `source`s (e.g. `rome-history` → Europe), and the synthetic Global lane carries `world-history` eras. Entries are assigned to a lane by point-in-polygon against the active laneset; lanes and lanesets are selectable (side-panel detail + map outline).
+`public/data/lanesets.json` (generated by `web-client/scripts/gen-lanesets.mjs` from the vendored Natural Earth polygons + custom rectangles, RDP-simplified) defines several **lanesets**, each a division of Earth's surface into **lanes** with geometry, a display name, and a description. This file is now purely a build-time artifact: `db/seed.mjs` loads it into Postgres (`lanesets`/`lanes` tables, geometry as PostGIS `MultiPolygon`), and the running app fetches lanesets from `/api/lanesets` instead of the static file. Each `Laneset`/`Lane` carries both a Postgres UUID `id` (cache key only) and the original human-readable `slug` (e.g. `continents`, `africa`) that the DSL and picker actually reference. Built-in lanesets: `continents` (default), `landmasses`, `global-regions`, and `cradles` (cradles of civilization + an "Outside the cradles" catch-all). Lanes tile the globe (land lanes precede ocean lanes so land wins during assignment). Each lane may map one or more historical-era `source`s (e.g. `rome-history` → Europe), and the synthetic Global lane carries `world-history` eras. Entries are assigned to a lane by point-in-polygon against the active laneset (client-side, on the capped result set — unchanged by the Postgres migration); lanes and lanesets are selectable (side-panel detail + map outline).
 
 ---
 

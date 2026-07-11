@@ -30,13 +30,16 @@ export function pointInMultiPolygon(lng: number, lat: number, multi: MultiPolygo
   return false;
 }
 
-// Returns the id of the first lane whose geometry contains the point, testing
-// lanes in order (land before ocean). A per-lane bbox prefilter keeps it cheap.
+// Returns the slug of the first lane whose geometry contains the point,
+// testing lanes in order (land before ocean). A per-lane bbox prefilter
+// keeps it cheap. Slug, not id: id is now a Postgres UUID used only for
+// caching, while slug is the stable identifier the rest of the UI (lane
+// selection, DSL) keys off.
 export function assignLane(lng: number, lat: number, lanes: Lane[]): string | null {
   for (const lane of lanes) {
     const [x0, y0, x1, y1] = lane.bbox;
     if (lng < x0 || lng > x1 || lat < y0 || lat > y1) continue;
-    if (pointInMultiPolygon(lng, lat, lane.geometry)) return lane.id;
+    if (pointInMultiPolygon(lng, lat, lane.geometry)) return lane.slug;
   }
   return null;
 }

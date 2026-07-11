@@ -42,7 +42,7 @@ export class LanesetPickerElement extends HTMLElement {
 
   private options(): { id: string; name: string; description: string }[] {
     return [
-      ...this.lanesets.map(l => ({ id: l.id, name: l.name, description: l.description })),
+      ...this.lanesets.map(l => ({ id: l.slug, name: l.name, description: l.description })),
       { id: 'none', name: 'None', description: 'Hide geographic lanes.' },
     ];
   }
