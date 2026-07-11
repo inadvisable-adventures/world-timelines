@@ -52,7 +52,7 @@ data rather than erroring out or requiring manual cleanup first.
 
 ## `db/init-db.sh` steps
 
-1. Resolve `PG_BIN` — prefer `/opt/homebrew/opt/postgresql@16/bin` if present,
+1. Resolve `PG_BIN` — prefer `/opt/homebrew/opt/postgresql@18/bin` if present,
    else fall back to `pg_ctl`/`psql`/`initdb` on `PATH`; exit with a clear
    error pointing at `install-local-postgres.md` if none found.
 2. `PGDATA=db/.pgdata`. If `$PGDATA/PG_VERSION` doesn't exist, run `initdb

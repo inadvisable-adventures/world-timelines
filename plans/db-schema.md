@@ -173,7 +173,7 @@ CREATE INDEX entry_locations_entry_id_idx ON entry_locations (entry_id);
   → lanes → entries → entry_locations), idempotent via `CREATE TABLE IF NOT
   EXISTS` / `CREATE EXTENSION IF NOT EXISTS`.
 - `db/README.md` — what's in this directory, the one-time `brew install
-  postgresql@16 postgis` prerequisite (from `install-local-postgres.md`), and
+  postgresql@18 postgis` prerequisite (from `install-local-postgres.md`), and
   a pointer to the init script (`db-init-script.md`) that applies this schema
   and seeds it.
 

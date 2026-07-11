@@ -8,7 +8,7 @@ Item format:
 2. Description of a blocked item. PENDING
 -->
 
-1. Install PostgreSQL locally on this machine, with the PostGIS extension available. [planned: install-local-postgres.md]
+1. COMPLETED. Install PostgreSQL locally on this machine, with the PostGIS extension available. [planned: install-local-postgres.md]
 2. In `db/`, define a PostgreSQL schema (with PostGIS geometry columns) holding all data currently available in the app — entries, historical eras, lanesets, and lanes — with each entry, laneset, and lane given its own UUID primary key and a last-updated timestamp. [planned: db-schema.md]
 3. Write a script that initializes the local PostgreSQL install with the database designed in `db/`, including seeding it from the existing TSV/JSON data files. [planned: db-init-script.md]
 4. Run the initialization script and verify it created the local database correctly; leave the database in place afterwards. [planned: run-and-verify-local-db.md]
