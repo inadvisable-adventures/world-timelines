@@ -1,4 +1,14 @@
-# DB init/seed script
+# DB init/seed script — COMPLETED (script written; run+verify is item 4)
+
+## Result (2026-07-11)
+
+Implemented as designed: `db/init-db.sh` and `db/seed.mjs`, plus `.gitignore`
+entries for `db/.pgdata/` and `db/.generated-seed.sql`. `bash -n` and `node
+--check` both pass. One simplification from the original design: SQL text
+values are escaped with standard `''`-doubling rather than dollar-quoting —
+equally correct for a generated file `psql -f` parses (no shell involved),
+and avoids picking dollar-quote tags. Actually running the script against
+the local cluster is TODO item 4 (`run-and-verify-local-db.md`).
 
 ## Summary
 

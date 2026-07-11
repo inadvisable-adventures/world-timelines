@@ -24,3 +24,7 @@ test-data/
 
 # https://github.com/inadvisable-adventures/desk
 .desk_temp/
+
+# Local PostgreSQL cluster data + generated seed SQL (see db/README.md)
+db/.pgdata/
+db/.generated-seed.sql
