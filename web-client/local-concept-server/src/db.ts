@@ -11,6 +11,7 @@
 // a temp file per query.)
 
 import { execFile } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,7 +20,19 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 
 const PGHOST = process.env['PGHOST'] ?? path.join(REPO_ROOT, 'db', '.pgdata');
 const PGDATABASE = process.env['PGDATABASE'] ?? 'world_timelines';
-const PSQL = process.env['PSQL_BIN'] ?? 'psql';
+
+// postgresql@18 is Homebrew keg-only (see plans/install-local-postgres.md),
+// so `psql` is not on PATH by default. Mirror db/init-db.sh's resolution: an
+// explicit PSQL_BIN wins, then the well-known keg-only path if it exists,
+// then fall back to bare `psql` on PATH.
+function resolvePsqlBin(): string {
+  if (process.env['PSQL_BIN']) return process.env['PSQL_BIN'];
+  const kegOnly = '/opt/homebrew/opt/postgresql@18/bin/psql';
+  if (fs.existsSync(kegOnly)) return kegOnly;
+  return 'psql';
+}
+
+const PSQL = resolvePsqlBin();
 
 export class BadRequestError extends Error {}
 export class QueryError extends Error {}
@@ -62,6 +75,13 @@ export function runQuery<T = unknown>(inner: string, vars: Record<string, string
   return new Promise((resolve, reject) => {
     execFile(PSQL, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          reject(new QueryError(
+            `could not find psql at "${PSQL}". Install it (see plans/install-local-postgres.md: ` +
+            `brew install postgresql@18 postgis) or set PSQL_BIN to its full path.`,
+          ));
+          return;
+        }
         reject(new QueryError(stderr.trim() || err.message));
         return;
       }
