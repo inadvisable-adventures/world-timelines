@@ -75,8 +75,8 @@ export interface EventDate {
 // ---------------------------------------------------------------------------
 
 export interface HistoricalEvent {
-  id: string;                   // Postgres UUID
-  title: string;
+  id: string;                   // Postgres UUID, or a Wikidata Q-id (e.g. 'Q42') for Wikidata-sourced entries
+  title: string;                // display name — not always the Wikipedia page title, see wikipediaTitle
   locations: EventLocation[];   // zero or more; first = primary (if any)
   startDate: EventDate;
   endDate: EventDate | null;    // null when start === end
@@ -85,6 +85,7 @@ export interface HistoricalEvent {
   description: string;
   tags: string[];               // e.g. ['no-coords-found']
   lastUpdated: string;          // ISO 8601; drives the IndexedDB cache
+  wikipediaTitle: string;       // exact enwiki article title, for building a Wikipedia link
 }
 
 // ---------------------------------------------------------------------------

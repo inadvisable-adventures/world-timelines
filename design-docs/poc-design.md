@@ -148,8 +148,8 @@ Precision is set only as warranted: a year-range expression yields 0 for month/d
 
 | Field          | Type             | Description                                                  |
 |----------------|------------------|--------------------------------------------------------------|
-| id             | string           | Postgres UUID (drives the IndexedDB cache and by-ids fetch)   |
-| title          | string           | Display name                                                  |
+| id             | string           | Postgres UUID, or a Wikidata Q-id (e.g. `'Q42'`) for Wikidata-sourced entries |
+| title          | string           | Display name — not always the Wikipedia page title, see `wikipediaTitle` |
 | locations      | EventLocation[]  | One or more geographic locations                              |
 | startDate      | EventDate        | Start date with full denormalized structure                   |
 | endDate        | EventDate \| null | null if startDate is also the end date                       |
@@ -158,6 +158,7 @@ Precision is set only as warranted: a year-range expression yields 0 for month/d
 | description    | string           | Short description (1–2 sentences)                             |
 | tags           | string[]         | e.g. `['no-coords-found']`; a tag ending in `-history` plus `category='historical_period'` marks an entry as a historical era |
 | lastUpdated    | string           | ISO 8601 timestamp; the cache-freshness signal                |
+| wikipediaTitle | string           | Exact enwiki article title, used to build the "view on Wikipedia" link. For Postgres-backed entries this equals `title` (same string, by construction of the ingester); for Wikidata-sourced entries it's a required (non-`OPTIONAL`) SPARQL join result and can genuinely differ from the Wikidata label used for `title` (e.g. label "James Fearon" vs. actual article "James Fearon (actor)") |
 
 ### TSV seed format (`db/seed.mjs` input; not fetched by the running app)
 
@@ -240,6 +241,16 @@ distinct classes ("fictional human," "demigod of Greek mythology," etc.)
 rather than reusing the real-world type, so the base category type
 constraint itself excludes most fictional results before the explicit
 filter even runs; the filter is defense-in-depth for edge cases.
+
+Every result is additionally required (a non-`OPTIONAL` join, so it also
+acts as an implicit filter) to have an English Wikipedia article —
+`?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ;
+schema:name ?wikipediaTitle .` — and that article's exact title is stored
+as `wikipediaTitle`, separate from `title` (the Wikidata label). Verified
+directly against live data that these two frequently differ (e.g. label
+"James Fearon" vs. actual article "James Fearon (actor)" — ~20% of one
+test batch); `entry-detail.ts` links to Wikipedia via `wikipediaTitle`, not
+`title`, for exactly this reason.
 
 Responses are converted into this app's `HistoricalEvent` shape and cached
 in a dedicated IndexedDB store (`wikidataEntries`, separate from the

@@ -119,6 +119,12 @@ export async function getEntriesByIds(rawIds: unknown): Promise<unknown[]> {
     SELECT
       e.id,
       e.title,
+      -- The Postgres path's title already IS the Wikipedia page title by
+      -- construction (the ingester sets it directly from page.title) —
+      -- unlike the Wikidata/QLever path, where the display label and the
+      -- real article title can diverge. See
+      -- plans/qlever-require-wikipedia-page.md.
+      e.title AS "wikipediaTitle",
       e.category,
       e.infobox_type AS "infoboxType",
       e.description,

@@ -93,10 +93,13 @@ export function buildSparqlQuery(params: QLeverQueryParams): string {
 
   return `${PREFIXES}
 
-SELECT ?item ?itemLabel ?description ?matchedCategory ?date ?datePrecision ?coord WHERE {
+SELECT ?item ?itemLabel ?description ?matchedCategory ?date ?datePrecision ?coord ?wikipediaTitle WHERE {
   {
     ${branches}
   }
+  ?article schema:about ?item ;
+           schema:isPartOf <https://en.wikipedia.org/> ;
+           schema:name ?wikipediaTitle .
   ${filters.join('\n  ')}
   OPTIONAL { ?item rdfs:label ?itemLabel . FILTER(LANG(?itemLabel) = "en") }
   OPTIONAL { ?item schema:description ?description . FILTER(LANG(?description) = "en") }
@@ -116,6 +119,7 @@ interface SparqlBinding {
   date: { value: string };
   datePrecision: { value: string };
   coord?: { value: string };
+  wikipediaTitle: { value: string };
 }
 
 interface SparqlResponse {
@@ -191,6 +195,10 @@ function bindingToEvent(b: SparqlBinding): HistoricalEvent | null {
     description: b.description?.value ?? '',
     tags: ['wikidata'],
     lastUpdated: new Date().toISOString(), // when we fetched it, not a Wikidata edit time — see plan
+    // The Wikipedia page title, not the (possibly different) Wikidata
+    // label — see plans/qlever-require-wikipedia-page.md. Required by the
+    // query itself (non-OPTIONAL join), so always present here.
+    wikipediaTitle: b.wikipediaTitle.value,
   };
 }
 

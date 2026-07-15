@@ -51,7 +51,7 @@ export class EntryDetailElement extends HTMLElement {
 
   show(ev: HistoricalEvent): void {
     this.linkEl.textContent = ev.title;
-    this.linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(ev.title)}`;
+    this.linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(ev.wikipediaTitle)}`;
     this.yearsEl.textContent = formatYears(ev);
     const color = CATEGORY_COLORS[ev.category];
     this.catEl.textContent = ev.category.replace(/_/g, ' ');

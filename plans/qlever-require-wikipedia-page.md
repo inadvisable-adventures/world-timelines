@@ -1,4 +1,28 @@
-# Require a Wikipedia page for QLever entries
+# Require a Wikipedia page for QLever entries — COMPLETED
+
+## Result (2026-07-15)
+
+Implemented as designed. Verified end-to-end in a headless browser (not
+just the standalone SPARQL check from planning): querying Wikidata for
+`person` entries in 1700–1750 returned 87 entries, all with a
+non-empty `wikipediaTitle` (confirming the required join works — zero
+entries were missing it), and **17 of 87 (~20%)** had a `title` that
+differed from `wikipediaTitle` — e.g. label "James Fearon" vs. actual
+article "James Fearon (actor)", "Karl Friedrich Behrens" vs. "Carl
+Friedrich Behrens". Clicking into an entry-detail panel for one of these
+confirmed the "view on Wikipedia" link now correctly points at
+`.../wiki/James%20Fearon%20(actor)` (the real article) rather than the old
+behavior, which would have built a broken/wrong link from the display
+label. The Postgres path's passthrough (`wikipediaTitle` aliasing `title`)
+was also directly verified (Great Pyramid of Giza entry).
+
+One test-harness bug surfaced and fixed along the way, not an app bug:
+Playwright's `page.waitForFunction(fn, options)` two-arg form was
+misinterpreting the options object as the page-function argument (the real
+signature is `waitForFunction(fn, arg, options)`), making the verification
+script's own timeout appear to fail at a hardcoded 30s regardless of the
+requested timeout. Once fixed, the actual query completed in ~13s, in line
+with prior measurements.
 
 ## Summary
 
