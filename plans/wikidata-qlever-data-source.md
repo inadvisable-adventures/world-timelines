@@ -1,4 +1,42 @@
-# Wikidata (QLever) as an alternative data source
+# Wikidata (QLever) as an alternative data source — COMPLETED
+
+## Result (2026-07-15)
+
+Implemented as designed. **Entry-id decision, as requested**: went with the
+plan's recommendation — the raw Wikidata Q-id (e.g. `"Q42"`) is used
+directly as `HistoricalEvent.id` for Wikidata-sourced entries, not a
+generated UUID. Reasoning is in the "Decision" section below; nothing
+downstream turned out to require UUID shape, so this held up unchanged
+through implementation.
+
+One real bug found and fixed during browser verification: a Wikidata item
+with more than one recorded place (e.g. multiple `P19` birthplace claims)
+produced one SPARQL result row per place, which meant duplicate
+`HistoricalEvent`s with the same id (only the last survived the id-keyed
+IndexedDB cache, but the raw results array returned to the UI still had
+duplicates — visible as repeated map/timeline markers for one person).
+Fixed by grouping results by id and merging locations into a single
+event's `locations[]` array (already designed to hold multiple locations)
+rather than leaving duplicates. Caught via a real query in a headless
+browser (87 unique cache entries vs. 100 raw results, before the fix).
+
+Also verified directly against the live QLever endpoint (not just assumed):
+a well-known fictional character (Sherlock Holmes, Q4653) and a mythological
+figure (Heracles, Q122248) are both typed by Wikidata as distinct classes
+("fictional human," "demigod of Greek mythology") rather than reusing the
+real-world type (`Q5`/human) — so the per-category base type constraint
+already excludes most fictional/mythological results before the explicit
+`FILTER NOT EXISTS` fictional-exclusion clauses even run; those clauses are
+confirmed working but are better understood as defense-in-depth than the
+primary filter.
+
+Verified end-to-end in a headless browser: settings gear icon shows both
+options; switching to Wikidata mid-session runs a real SPARQL query,
+displays real historical people with correct dates/coordinates on the
+map/timeline, shows the loading overlay for the ~10+ second cold-query
+case, populates the dedicated `wikidataEntries` IndexedDB store, and
+switching back to the Postgres source restores prior behavior — no console
+errors throughout.
 
 ## Summary
 

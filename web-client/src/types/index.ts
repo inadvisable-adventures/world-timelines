@@ -170,6 +170,12 @@ export type DslFilter =
 ;
 
 // ---------------------------------------------------------------------------
+// Data source (TODO #6 — Wikidata via QLever, alongside local-concept-server)
+// ---------------------------------------------------------------------------
+
+export type DataSource = 'postgres' | 'wikidata';
+
+// ---------------------------------------------------------------------------
 // Worker message types
 // ---------------------------------------------------------------------------
 
@@ -189,6 +195,7 @@ export interface QueryRequest {
   dsl: string;
   timeRange: [number, number];
   geoFilter?: GeoFilter | null;
+  dataSource: DataSource;
 }
 
 export type WorkerInMessage = InitRequest | QueryRequest;

@@ -1,4 +1,4 @@
-import type { EventCategory, HistoricalEra, HistoricalEvent, Laneset, WorkerInMessage, WorkerOutMessage } from '../types/index.js';
+import type { DataSource, EventCategory, HistoricalEra, HistoricalEvent, Laneset, WorkerInMessage, WorkerOutMessage } from '../types/index.js';
 import { parseDsl } from '../worker/dsl-parser.js';
 import { openCache, resolveViaCache, ENTRIES_STORE, LANESETS_STORE } from '../cache/idb-cache.js';
 import { fetchEntriesByIds, fetchLanesetsByIds, fetchSlim } from '../cache/api-client.js';
@@ -8,6 +8,7 @@ import type { CategoryPickerElement } from './category-picker.js';
 import type { LanesetPickerElement } from './laneset-picker.js';
 import type { QueryEditorElement } from './query-editor.js';
 import type { EntryDetailElement } from './entry-detail.js';
+import type { SettingsMenuElement } from './settings-menu.js';
 
 export class AppRootElement extends HTMLElement {
   private worker: Worker | null = null;
@@ -19,6 +20,7 @@ export class AppRootElement extends HTMLElement {
   private loadingOverlay!: HTMLElement;
   private resultsCountEl!: HTMLElement;
   private detailEl!: EntryDetailElement;
+  private settingsEl!: SettingsMenuElement;
 
   private currentTimeRange: [number, number] = [-3000, 2100];
   private timeSelection: [number, number] | null = null;
@@ -26,6 +28,7 @@ export class AppRootElement extends HTMLElement {
   private selectedId: string | null = null;
   private lanesets: Laneset[] = [];
   private activeLanesetId = 'continents'; // default; 'none' hides lanes
+  private dataSource: DataSource = 'postgres'; // default preserves prior behavior
 
   connectedCallback(): void {
     const template = document.getElementById('app-root-template') as HTMLTemplateElement;
@@ -40,6 +43,7 @@ export class AppRootElement extends HTMLElement {
     this.loadingOverlay = shadow.getElementById('loading-overlay')!;
     this.resultsCountEl = shadow.getElementById('results-count')!;
     this.detailEl = shadow.getElementById('entry-detail') as EntryDetailElement;
+    this.settingsEl = shadow.querySelector('settings-menu') as SettingsMenuElement;
 
     shadow.addEventListener('time-range-changed', this.onTimeRangeChanged.bind(this) as EventListener);
     shadow.addEventListener('time-filter-changed', this.onTimeFilterChanged.bind(this) as EventListener);
@@ -50,6 +54,7 @@ export class AppRootElement extends HTMLElement {
     shadow.addEventListener('laneset-changed', this.onLanesetChanged.bind(this) as EventListener);
     shadow.addEventListener('global-eras-toggled', this.onGlobalErasToggled.bind(this) as EventListener);
     shadow.addEventListener('lane-selected', this.onLaneSelected.bind(this) as EventListener);
+    shadow.addEventListener('data-source-changed', this.onDataSourceChanged.bind(this) as EventListener);
 
     this.initWorker();
     this.loadEras().catch(() => { /* era bands optional */ });
@@ -74,6 +79,12 @@ export class AppRootElement extends HTMLElement {
     this.lanesetPickerEl.setLanesets(this.lanesets);
     this.lanesetPickerEl.setSelected(this.activeLanesetId);
     this.applyActiveLaneset();
+  }
+
+  private onDataSourceChanged(e: Event): void {
+    const { dataSource } = (e as CustomEvent<{ dataSource: DataSource }>).detail;
+    this.dataSource = dataSource;
+    this.sendQuery();
   }
 
   private onGlobalErasToggled(e: Event): void {
@@ -124,6 +135,7 @@ export class AppRootElement extends HTMLElement {
       return;
     }
     if (msg.type === 'results') {
+      this.loadingOverlay.classList.add('hidden');
       this.lastResults = msg.events;
       if (this.selectedId && !msg.events.some(ev => ev.id === this.selectedId)) {
         this.detailEl.hide();
@@ -140,11 +152,16 @@ export class AppRootElement extends HTMLElement {
     if (!this.worker) return;
     const dsl = this.editorEl?.getDsl() ?? '';
     const timeRange = this.timeSelection ?? this.currentTimeRange;
+    // A cold Wikidata query can take 10+ seconds (see
+    // plans/wikidata-qlever-data-source.md) — show the overlay while any
+    // query is in flight so the UI doesn't look frozen.
+    this.loadingOverlay.classList.remove('hidden');
     const msg: WorkerInMessage = {
       type: 'query',
       dsl,
       timeRange,
       geoFilter: null,
+      dataSource: this.dataSource,
     };
     this.worker.postMessage(msg);
   }

@@ -4,6 +4,8 @@
 
 The POC is a client-side SPA that lets users explore historical events on an interactive world map linked to a horizontal timeline. Data lives in a local PostgreSQL + PostGIS database; a small local server (`local-concept-server`) exposes it as a JSON API, and the client caches entries/eras/lanesets locally in IndexedDB, fetching only what's missing or stale. Queries are still assembled and reconciled with the cache in a WebWorker, but the actual filtering (category/year/text/geo) now runs as SQL against Postgres rather than an in-memory array scan. See `plans/indexeddb-cache-and-server-rewrite.md` for the migration from the original fully-static, TSV-in-a-WebWorker design.
 
+A settings (gear) icon in the app's upper-right lets the user switch the query worker's data source between this Postgres-backed local data and a second, independent source: live Wikidata data queried directly from the browser against the public QLever SPARQL endpoint. See [Data sources](#data-sources) and `plans/wikidata-qlever-data-source.md`.
+
 ## Goals
 
 - Demonstrate the core interaction: map + timeline + query editor synchronized together.
@@ -204,6 +206,65 @@ A non-filter directive, `laneset <id>` / `laneset none`, selects the timeline's 
 
 ---
 
+## Data sources
+
+A settings (gear) icon (`<settings-menu>`, upper-right of the app) selects
+which backend `query-worker.ts` answers `query` messages against — sent
+fresh with every query as `QueryRequest.dataSource: 'postgres' | 'wikidata'`
+(default `'postgres'`, preserving prior behavior). Only entry query results
+(map markers, timeline entry dots) are affected; lanesets/lanes and
+historical eras always load from `local-concept-server`/Postgres in both
+modes — there's no Wikidata equivalent of this app's curated geographic
+lanesets or hand-curated era bands. See `plans/wikidata-qlever-data-source.md`
+for the full design.
+
+### `'postgres'` (default)
+
+Unchanged from the [Architecture](#architecture) description above.
+
+### `'wikidata'`
+
+`query-worker.ts` builds a SPARQL query (`web-client/src/wikidata/qlever-client.ts`)
+from the same parsed DSL filters + `timeRange` + `geoFilter` the Postgres
+path uses, and runs it directly against the public QLever Wikidata endpoint
+(`https://qlever.dev/api/wikidata` — CORS-open, no API key; confirmed
+directly against the live endpoint before implementing). A per-category
+mapping (`web-client/src/wikidata/category-map.ts`) translates 8 of this
+app's 9 `EventCategory` values into a Wikidata type (`wdt:P31`), one anchor
+date property, and an optional place-lookup strategy (`other` has no clean
+mapping and is unsupported). Fictional entities are excluded
+(`FILTER NOT EXISTS` on transitive `wdt:P279*` subclass-of "fictional
+entity" and on `wdt:P1074` "part of the fictional universe") — though in
+practice Wikidata already types most fictional/mythological figures with
+distinct classes ("fictional human," "demigod of Greek mythology," etc.)
+rather than reusing the real-world type, so the base category type
+constraint itself excludes most fictional results before the explicit
+filter even runs; the filter is defense-in-depth for edge cases.
+
+Responses are converted into this app's `HistoricalEvent` shape and cached
+in a dedicated IndexedDB store (`wikidataEntries`, separate from the
+Postgres path's `entries` store). Unlike the Postgres path, this is a
+write-through cache, not a slim-list/by-ids diff: a live SPARQL query is
+both the listing and the full data in one round trip, with no cheap way to
+ask "what changed" separately. Entry ids are the raw Wikidata Q-id (e.g.
+`"Q42"`), not a generated UUID — nothing downstream requires UUID shape,
+and a Q-id is more directly traceable for debugging. `lastUpdated` records
+when this app fetched the entry, not a Wikidata edit time (not cheaply
+available via SPARQL).
+
+Known v1 limitations (see the plan for the full list): one date property
+per category (no multi-property fallback chain), point-events only (no
+start/end range extraction), no calendar-model detection (always reports
+`gregorian`), `other` category unsupported. A *cold* query (novel filter
+combination) over a broad time range measured ~13–14s against the live
+endpoint in testing; QLever caches server-side, so repeat/refined queries
+are far faster (~200ms–1s measured). The loading overlay now shows for any
+in-flight query (previously shown only during the worker's initial
+handshake, since Postgres-backed queries were always fast enough not to
+need one).
+
+---
+
 ## Component Details
 
 ### `<world-map>` Web Component
@@ -232,6 +293,15 @@ A non-filter directive, `laneset <id>` / `laneset none`, selects the timeline's 
 - Dispatches `category-filter-changed` with `{ selected: EventCategory[] }`.
 - Exposes `setSelected(cats)` to reflect DSL-driven changes back to the UI.
 - A synthetic **"global eras"** chip (not a real category) dispatches `global-eras-toggled` to show/hide the timeline's Global lane.
+
+### `<settings-menu>` Web Component
+
+- Gear icon (`⚙`), fixed to the app's upper-right corner (`position:
+  absolute`, sibling of the map/sidebar/timeline rows, not nested inside
+  either). Clicking opens a small popup listing the two data sources — same
+  button+popup interaction pattern as `<laneset-picker>`.
+- Dispatches `data-source-changed` with `{ dataSource: 'postgres' |
+  'wikidata' }`. Exposes `setSelected(id)` / `getSelected()`.
 
 ### `<query-editor>` Web Component
 

@@ -67,6 +67,14 @@ Opens at `http://localhost:4242` by default. Override the port with `PORT=8080 n
 
 If `psql` isn't on your `PATH` (Homebrew's `postgresql@18` is keg-only), point at it explicitly: `PSQL_BIN=/opt/homebrew/opt/postgresql@18/bin/psql npm start`. `PGHOST`/`PGDATABASE` default to the local cluster created by `db/init-db.sh` (`db/.pgdata`, database `world_timelines`) and don't need to be set for local dev.
 
+### Data source
+
+The gear icon in the app's upper-right switches between the local Postgres
+test data (default) and live data queried directly from the browser against
+Wikidata's public QLever SPARQL endpoint — no setup required for the latter,
+it's just a different backend for the same query worker. See
+`plans/wikidata-qlever-data-source.md`.
+
 ---
 
 ## Running the Ingester

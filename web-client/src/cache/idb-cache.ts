@@ -3,10 +3,14 @@
 // Native indexedDB — no dependency, works in both a Window and a Worker.
 
 const DB_NAME = 'world-timelines';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const ENTRIES_STORE = 'entries';
 export const LANESETS_STORE = 'lanesets';
+// Wikidata-sourced entries get their own store (TODO #6) — keeps a Q-id
+// (e.g. 'Q42') and a Postgres UUID from ever needing to be distinguished by
+// shape, and lets each source's cache be reasoned about/cleared independently.
+export const WIKIDATA_ENTRIES_STORE = 'wikidataEntries';
 
 export interface CachedRecord {
   id: string;
@@ -28,6 +32,7 @@ export function openCache(): Promise<IDBDatabase> {
       const db = req.result;
       if (!db.objectStoreNames.contains(ENTRIES_STORE)) db.createObjectStore(ENTRIES_STORE, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(LANESETS_STORE)) db.createObjectStore(LANESETS_STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(WIKIDATA_ENTRIES_STORE)) db.createObjectStore(WIKIDATA_ENTRIES_STORE, { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -53,7 +58,10 @@ function getMany<T extends CachedRecord>(db: IDBDatabase, store: string, ids: st
   });
 }
 
-function putMany<T extends CachedRecord>(db: IDBDatabase, store: string, records: T[]): Promise<void> {
+// Write-through cache write, exposed for sources (e.g. Wikidata via QLever)
+// that have no cheap way to list "what changed" separately from fetching
+// full data — see plans/wikidata-qlever-data-source.md.
+export function putCached<T extends CachedRecord>(db: IDBDatabase, store: string, records: T[]): Promise<void> {
   return new Promise((resolve, reject) => {
     if (records.length === 0) { resolve(); return; }
     const tx = db.transaction(store, 'readwrite');
@@ -86,7 +94,7 @@ export async function resolveViaCache<T extends CachedRecord>(
 
   if (missingIds.length > 0) {
     const fresh = await fetchMissing(missingIds);
-    await putMany(db, store, fresh);
+    await putCached(db, store, fresh);
     for (const record of fresh) cached.set(record.id, record);
   }
 
