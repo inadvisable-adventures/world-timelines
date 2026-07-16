@@ -44,6 +44,8 @@ bash db/init-db.sh                   # creates/starts the local cluster, applies
 
 See `db/README.md`. Safe to re-run `db/init-db.sh` any time (it reloads the seed data, not the database itself).
 
+**Status**: as of 2026-07-16, PostgreSQL 18 + PostGIS are installed and the local cluster at `db/.pgdata` is running (started by `db/init-db.sh`) with the `world_timelines` database seeded. It is **not** registered as a background service (see `plans/install-local-postgres.md`), so it only stays up as long as the machine doesn't reboot and the `postgres` process isn't killed. Check with `pg_ctl status -D db/.pgdata` (full path: `/opt/homebrew/opt/postgresql@18/bin/pg_ctl`); if it's not running, `bash db/init-db.sh` brings it back exactly as it was (idempotent — reloads seed data, doesn't touch anything else).
+
 ### Build
 
 ```bash
