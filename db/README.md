@@ -29,6 +29,16 @@ brew install postgresql@18 postgis
   them via `psql -f` (this project talks to Postgres by shelling out to the
   `psql` CLI rather than adding a driver dependency — see
   `plans/indexeddb-cache-and-server-rewrite.md`).
+- `fetch-wikidata-persons.mjs` — bulk-fetches `person` records matching this
+  project's QLever query filters (see
+  `web-client/src/wikidata/qlever-client.ts`) directly from the public
+  QLever endpoint, and loads them into the `wikidata_documents` JSONB
+  document table (schema also in `schema.sql`). A one-time/occasional job,
+  not run as part of `init-db.sh`. Chunks the fetch by date range (paced,
+  resumable via `wikidata_fetch_progress`) rather than paginating — see
+  `plans/wikidata-bulk-person-download.md` for why. Usage:
+  `node db/fetch-wikidata-persons.mjs [--year-min N] [--year-max N]`
+  (defaults to the app's full `-3000`..`2100` range).
 
 ## Usage
 

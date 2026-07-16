@@ -99,3 +99,31 @@ CREATE TABLE IF NOT EXISTS entry_locations (
 
 CREATE INDEX IF NOT EXISTS entry_locations_geometry_gix ON entry_locations USING GIST (geometry);
 CREATE INDEX IF NOT EXISTS entry_locations_entry_id_idx ON entry_locations (entry_id);
+
+-- ---------------------------------------------------------------------------
+-- Wikidata document collection (TODO item 9) — a raw archive of records
+-- bulk-fetched from the QLever Wikidata endpoint (db/fetch-wikidata-persons.mjs),
+-- separate from the app's normalized entries/entry_locations model above.
+-- Not queried by the running app (which talks to QLever live per TODO item 6);
+-- this is a local cache/archive so records don't need to be re-fetched.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS wikidata_documents (
+  id          TEXT PRIMARY KEY,        -- Wikidata Q-id, e.g. 'Q1000005'
+  category    TEXT NOT NULL,           -- e.g. 'person'
+  data        JSONB NOT NULL,          -- full record, same shape as HistoricalEvent
+  fetched_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS wikidata_documents_category_idx ON wikidata_documents (category);
+
+-- Tracks completed date-range chunks so a bulk fetch is resumable without
+-- re-fetching or re-counting chunks already loaded.
+CREATE TABLE IF NOT EXISTS wikidata_fetch_progress (
+  category         TEXT NOT NULL,
+  chunk_start_year INTEGER NOT NULL,
+  chunk_end_year   INTEGER NOT NULL,
+  row_count        INTEGER NOT NULL,
+  completed_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (category, chunk_start_year, chunk_end_year)
+);

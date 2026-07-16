@@ -1,5 +1,30 @@
 # Bulk-download `person` records into a Postgres document collection
 
+## Status (2026-07-16): pipeline built and validated; full run awaiting go-ahead
+
+`db/schema.sql` (two new tables) applied; `db/fetch-wikidata-persons.mjs`
+written and validated end-to-end against a small, cheap slice
+(`--year-min 1500 --year-max 1520`): 4,421 real records fetched, correctly
+deduplicated (see bug below), and bulk-loaded via `\copy`; re-running
+confirmed resumability (the completed chunk is skipped, no re-fetch). That
+validation data (4,421 real 1500–1520 records) is legitimate output and
+was left in place rather than cleaned up — it's part of the target
+dataset, not throwaway test data.
+
+One real bug caught by this small-scale test before it could hit the full
+run: a person with multiple recorded places (multiple `P19` claims)
+produces multiple result rows sharing one id, which violated
+`wikidata_documents`' primary key on the first attempt. Fixed with the same
+merge-by-id approach already used in `qlever-client.ts` for the same
+underlying issue (TODO item 6).
+
+**Not yet done**: the full `-3000`..`2100` run (~1.24M records, estimated
+in the low hundreds of chunks given the measured chunk sizes and the
+100,000-row cap — see the design below for the actual planning approach).
+Per this plan's own verification step 3, checking in with the user with
+concrete numbers before starting that run, since it's the one step that
+sustains load against QLever for an extended period.
+
 ## Summary
 
 Fetch the full set of ~1.24M Wikidata `person` records matching the
@@ -122,9 +147,17 @@ module between a browser/worker TS build and a standalone Node script):
 
 1. Determine chunk boundaries per the strategy above, skipping any already
    present in `wikidata_fetch_progress`.
-2. For each chunk: fetch via CSV, parse rows into the record shape,
-   write to a local temp CSV file (correctly comma/quote/newline-escaped,
-   with the JSONB `data` column as a JSON-encoded text field), and bulk-load
+2. For each chunk: fetch as `application/sparql-results+json` (**deviation
+   from the original design, which said CSV** — either way requires a full
+   parse-and-transform step since QLever's raw columns don't match this
+   table's shape, so there's no efficiency win from consuming CSV
+   specifically; JSON reuses the exact binding shape/parsing logic already
+   proven correct in `qlever-client.ts`, trading a bit of extra response
+   size for not needing a new hand-rolled CSV parser and its escaping edge
+   cases), parse into records, then **write this script's own output** as a
+   local temp CSV file (correctly comma/quote/newline-escaped, with the
+   JSONB `data` column as a JSON-encoded text field — this part is still
+   CSV, just authored by us instead of parsed from QLever), and bulk-load
    via `psql ... -c "\copy wikidata_documents (id, category, data,
    fetched_at) FROM '<tempfile>' WITH (FORMAT csv)"` — `\copy` is the
    correct, efficient tool for a bulk load at this row count (vs. a giant
