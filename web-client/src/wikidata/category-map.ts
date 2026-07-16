@@ -18,13 +18,31 @@ export interface CategoryMapping {
   typeQid: string;       // e.g. 'wd:Q5'
   dateProp: string;      // e.g. 'P569'
   place: PlaceStrategy;
+  // Additional `FILTER NOT EXISTS { ... }` (or similar) fragments included
+  // inside this category's UNION branch — see qlever-client.ts's
+  // categoryBranch(). Config-driven so other categories can gain their own
+  // exclusions later without touching qlever-client.ts.
+  excludePatterns?: string[];
 }
+
+// Excludes sports figures (see plans/qlever-exclude-sports-figures.md):
+// P641 (sport) directly, and P106 (occupation) transitively subclassing
+// "athlete" (Q2066131) — verified against live data to reliably catch
+// sport-specific occupations (association football player, basketball
+// player, etc.) without enumerating individual sports. Also excludes mind
+// sports (e.g. chess) as a known, accepted side effect — Wikidata classes
+// those under the same "athlete" ancestor.
+const EXCLUDE_SPORTS_FIGURES = [
+  'FILTER NOT EXISTS { ?item wdt:P641 ?anySport }',
+  'FILTER NOT EXISTS { ?item wdt:P106/wdt:P279* wd:Q2066131 }',
+];
 
 export const CATEGORY_MAP: Partial<Record<EventCategory, CategoryMapping>> = {
   person: {
     typeQid: 'wd:Q5', // human
     dateProp: 'P569', // date of birth
     place: { kind: 'via', prop: 'P19' }, // place of birth
+    excludePatterns: EXCLUDE_SPORTS_FIGURES,
   },
   event: {
     typeQid: 'wd:Q1656682', // event

@@ -242,6 +242,16 @@ rather than reusing the real-world type, so the base category type
 constraint itself excludes most fictional results before the explicit
 filter even runs; the filter is defense-in-depth for edge cases.
 
+The `person` category's branch also carries category-specific exclusions
+(`CategoryMapping.excludePatterns`, spliced into that branch only — other
+categories don't get them) to filter out sports figures generally rather
+than by enumerating sports: `FILTER NOT EXISTS` on `wdt:P641` (sport) and
+on `wdt:P106` (occupation) transitively subclassing `athlete` (`Q2066131`).
+Verified directly against live data: a known athlete (Messi) is excluded,
+a known non-athlete (Napoleon) isn't. Known side effect, not fixed: mind
+sports (e.g. chess) are classed under the same "athlete" ancestor on
+Wikidata, so those get excluded too.
+
 Every result is additionally required (a non-`OPTIONAL` join, so it also
 acts as an implicit filter) to have an English Wikipedia article —
 `?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ;

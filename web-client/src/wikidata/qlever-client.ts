@@ -50,11 +50,13 @@ function categoryBranch(category: EventCategory): string {
     mapping.place.kind === 'direct' ? 'OPTIONAL { ?item wdt:P625 ?coord . }'
     : mapping.place.kind === 'via' ? `OPTIONAL { ?item wdt:${mapping.place.prop} ?placeItem . ?placeItem wdt:P625 ?coord . }`
     : '';
+  const excludes = (mapping.excludePatterns ?? []).join('\n      ');
   return `{
       ?item wdt:P31 ${mapping.typeQid} .
       ?item p:${mapping.dateProp}/psv:${mapping.dateProp} ?dateNode .
       ?dateNode wikibase:timeValue ?date ; wikibase:timePrecision ?datePrecision .
       ${placePattern}
+      ${excludes}
       BIND(${sparqlString(category)} AS ?matchedCategory)
     }`;
 }

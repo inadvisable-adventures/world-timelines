@@ -1,4 +1,20 @@
-# Exclude sports figures from the QLever `person` query
+# Exclude sports figures from the QLever `person` query — COMPLETED
+
+## Result (2026-07-16)
+
+Implemented as designed: `CategoryMapping.excludePatterns` (new optional
+field) holds the two `FILTER NOT EXISTS` fragments, populated for `person`
+only, spliced into that category's `UNION` branch by `categoryBranch()`.
+
+Verified by running the actual built `queryQLever()` function (not just a
+standalone SPARQL check) for `person`, 1900–1950: 29 results after the
+existing duplicate-location merge, all non-athletes on inspection
+(politicians, writers, musicians, scientists, clergy, diplomats, an
+archaeologist, a psychologist) — no sports figures. One transient QLever
+500 error was hit on a prior identical call and did not reproduce on
+retry (same query succeeded both via a direct manual `fetch` replication
+and via `queryQLever` itself moments later) — treated as an external
+service blip, not a bug in this code.
 
 ## Summary
 
