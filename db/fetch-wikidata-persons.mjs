@@ -63,11 +63,27 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const MAX_RETRIES = 4;
+const RETRY_BASE_DELAY_MS = 5000;
+
+// QLever occasionally returns a transient 5xx (observed: a server-side
+// memory-allocation error under load) unrelated to the query itself —
+// retry those with backoff rather than aborting the whole job. 4xx errors
+// (a real problem with the query) are not retried.
 async function sparqlRequest(query, accept) {
   const url = `${QLEVER_ENDPOINT}?${new URLSearchParams({ query }).toString()}`;
-  const res = await fetch(url, { headers: { Accept: accept, 'User-Agent': USER_AGENT } });
-  if (!res.ok) throw new Error(`QLever request failed: ${res.status} ${await res.text()}`);
-  return res;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, { headers: { Accept: accept, 'User-Agent': USER_AGENT } });
+    if (res.ok) return res;
+    const bodyText = await res.text();
+    if (res.status < 500 || attempt === MAX_RETRIES) {
+      throw new Error(`QLever request failed: ${res.status} ${bodyText}`);
+    }
+    const delay = RETRY_BASE_DELAY_MS * 2 ** attempt;
+    console.warn(`  QLever ${res.status} (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delay}ms...`);
+    await sleep(delay);
+  }
+  throw new Error('unreachable');
 }
 
 async function countInRange(yearMin, yearMax) {
