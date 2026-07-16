@@ -88,16 +88,14 @@ offline/local use beyond the live QLever query path above. See
 
 **For this prototype, only pre-1900 records are downloaded** (`--year-min
 -3000 --year-max 1899`), not the full dataset. Measured directly before
-deciding: the full set matching the query filters is ~1.24M records
-(~2.6 GB estimated, extrapolated at ~2,112 bytes/row from a validated
-4,421-row sample), and **~70% of that (818,687 of 1,241,767) is
-20th/21st-century** (born 1900 or later) — leaving **~30% (423,080
-records, ~0.89 GB estimated) born in 1899 or earlier**. Limiting to that
-pre-1900 slice cuts both the download size and the runtime by roughly
-two-thirds for this prototype's purposes. The full-range capability isn't
-removed — the same script and schema support the complete `-3000`..`2100`
-range later with no code changes, just different `--year-min`/`--year-max`
-arguments (or the defaults). Full writeup:
+deciding: the full set matching the query filters is ~1.24M records, and
+**~70% of that (818,687 of 1,241,767) is 20th/21st-century** (born 1900 or
+later) — leaving **~30% born in 1899 or earlier**. That pre-1900 slice has
+been downloaded and loaded: **423,470 records, 431 MB, in 9 chunks**. The
+full-range capability isn't removed — the same script and schema support
+the complete `-3000`..`2100` range later with no code changes, just
+different `--year-min`/`--year-max` arguments (or the defaults). Full
+writeup, including the actual-vs-estimated results:
 `investigations/wikidata-bulk-download-scope-decision.md`.
 
 ---

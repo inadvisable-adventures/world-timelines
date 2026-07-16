@@ -1,4 +1,29 @@
-# Bulk-download `person` records into a Postgres document collection
+# Bulk-download `person` records into a Postgres document collection — COMPLETED (pre-1900 scope)
+
+## Result (2026-07-16)
+
+The pre-1900 download ran successfully: **423,470 unique records loaded**
+(`-3000`..`1899`, verified — `min`/`max` year in the loaded data exactly
+matches the requested range), **431 MB total** (412 MB table + 19 MB
+indexes) — well under the ~890 MB extrapolated estimate in
+`investigations/wikidata-bulk-download-scope-decision.md` (that estimate
+was based on a single 1500–1520 sample averaging ~2,112 bytes/row; the
+actual full pre-1900 set averages ~1,018 bytes/row — worth remembering
+that a narrow-era sample isn't necessarily representative for this kind
+of extrapolation). Planning found the range needed only **9 chunks**
+(vs. the low-hundreds estimated for the full range), confirming the
+"pre-1900 is far cheaper" reasoning behind the scope decision.
+
+One real issue hit on the first attempt, fixed before the successful run:
+the very first planning `COUNT` query failed with a QLever server-side
+memory error (`"Tried to allocate 250 kB, but only 169.7 kB were
+available"`) — a transient resource issue on their end (a second instance
+of a transient QLever 5xx in this project, the first being during TODO
+item 8 testing). The script had no retry logic, so this aborted the whole
+job immediately. Added retry-with-backoff (4 retries, 5s/10s/20s/40s, 5xx
+only) before re-running; the retry fired once on the same query and
+succeeded, and the rest of the run completed cleanly with no further
+issues.
 
 ## Status (2026-07-16): pipeline built and validated; full run awaiting go-ahead
 

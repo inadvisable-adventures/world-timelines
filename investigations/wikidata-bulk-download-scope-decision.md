@@ -86,3 +86,39 @@ invocation (or the defaults, which still cover the full range).
 
 See `README.md`'s "Wikidata bulk download" section for the short version
 of this decision.
+
+## Outcome: the download ran (2026-07-16)
+
+`node db/fetch-wikidata-persons.mjs --year-min -3000 --year-max 1899`
+actually ran after this decision. Results vs. estimate:
+
+| | Estimated | Actual |
+|---|---|---|
+| Records | ~423,080 | **423,470** |
+| Size | ~0.89 GB (~890 MB) | **431 MB** |
+| Bytes/record | ~2,112 (from the 1500–1520 sample) | ~1,018 |
+| Chunks needed | not estimated precisely | **9** |
+
+The actual size came in at less than half the estimate. The estimate was
+extrapolated from a single narrow 1500–1520 sample (2,112 bytes/row); the
+real pre-1900 average is closer to 1,018 bytes/row — that one sample
+apparently wasn't representative (plausibly: later-era biographical
+records tend to have longer descriptions than earlier ones on average, and
+1500–1520 may have skewed toward more heavily documented figures). Record
+count matched closely (423,470 actual vs. 423,080 estimated, a 0.1%
+difference — consistent with Wikidata being a live, continuously-edited
+graph rather than a static snapshot, same as the small count drift
+observed between repeated `COUNT` queries in
+`investigations/wikidata-query-count.md`).
+
+One transient failure, fixed and retried successfully: the very first
+planning `COUNT` query hit a QLever server-side memory error
+(`"Tried to allocate 250 kB, but only 169.7 kB were available"`) — not a
+rate limit, just momentary resource pressure on their end (the second
+transient QLever 5xx observed in this project, after one during TODO item
+8 testing). `db/fetch-wikidata-persons.mjs` had no retry logic at the
+time, so this aborted the job outright. Added retry-with-backoff (4
+retries, 5s/10s/20s/40s, 5xx only — 4xx errors, which indicate an actual
+problem with the query, are not retried) before re-running; the retry
+fired exactly once, on the same query, and succeeded, and the remaining 9
+chunks all loaded without any further errors.
