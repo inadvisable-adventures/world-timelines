@@ -200,26 +200,35 @@ SELECT ?item ?itemLabel ?description ?date ?datePrecision ?coord ?wikipediaTitle
   return mergeDuplicateRecords(records);
 }
 
-// Standard CSV field escaping: wrap in quotes and double any internal
-// quotes if the field contains a comma, quote, or newline.
-function csvField(value) {
-  const s = String(value);
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+// Postgres can expand a JSON array directly into rows (jsonb_array_elements),
+// so the whole chunk goes in as a single dollar-quoted JSON blob rather than
+// escaping each record as a CSV line — simpler, and avoids a whole class of
+// CSV-escaping bugs. Dollar-quoting needs a delimiter tag guaranteed not to
+// appear in the data; pick one and verify, regenerating on the
+// astronomically unlikely chance of a collision.
+function dollarQuote(text) {
+  let tag = '$wt_json$';
+  while (text.includes(tag)) {
+    tag = `$wt_json_${Math.random().toString(36).slice(2)}$`;
+  }
+  return `${tag}${text}${tag}`;
 }
 
 async function loadChunkIntoPostgres(records, yearMin, yearMax) {
   if (records.length === 0) return;
-  const lines = records.map(r =>
-    [csvField(r.id), csvField(r.category), csvField(JSON.stringify(r)), csvField(r.lastUpdated)].join(','),
-  );
-  const tmpFile = path.join(os.tmpdir(), `wikidata-chunk-${yearMin}-${yearMax}-${process.pid}.csv`);
-  await writeFile(tmpFile, lines.join('\n') + '\n', 'utf8');
+  const json = JSON.stringify(records);
+  const sql = `
+BEGIN;
+INSERT INTO wikidata_documents (id, category, data, fetched_at)
+SELECT elem->>'id', elem->>'category', elem, now()
+FROM jsonb_array_elements(${dollarQuote(json)}::jsonb) AS elem
+ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, fetched_at = EXCLUDED.fetched_at;
+COMMIT;
+`;
+  const tmpFile = path.join(os.tmpdir(), `wikidata-chunk-${yearMin}-${yearMax}-${process.pid}.sql`);
+  await writeFile(tmpFile, sql, 'utf8');
   try {
-    await execFilePromise(PSQL, [
-      '-h', PGDATA, '-d', PGDATABASE, '-v', 'ON_ERROR_STOP=1', '-q',
-      '-c', `\\copy wikidata_documents (id, category, data, fetched_at) FROM '${tmpFile}' WITH (FORMAT csv)`,
-    ]);
+    await execFilePromise(PSQL, ['-h', PGDATA, '-d', PGDATABASE, '-v', 'ON_ERROR_STOP=1', '-q', '-f', tmpFile]);
   } finally {
     await unlink(tmpFile).catch(() => {});
   }
