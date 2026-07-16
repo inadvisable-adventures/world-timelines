@@ -18,12 +18,28 @@ produces multiple result rows sharing one id, which violated
 merge-by-id approach already used in `qlever-client.ts` for the same
 underlying issue (TODO item 6).
 
-**Not yet done**: the full `-3000`..`2100` run (~1.24M records, estimated
-in the low hundreds of chunks given the measured chunk sizes and the
-100,000-row cap — see the design below for the actual planning approach).
-Per this plan's own verification step 3, checking in with the user with
-concrete numbers before starting that run, since it's the one step that
-sustains load against QLever for an extended period.
+Loading was subsequently simplified: chunks are loaded via
+`jsonb_array_elements()` expanding one dollar-quoted JSON blob per chunk
+(with `ON CONFLICT (id) DO UPDATE` for defensive idempotency), rather than
+hand-rolled per-record CSV escaping — see the commit history for
+`db/fetch-wikidata-persons.mjs`. Behavior and validation results are
+unchanged.
+
+**Scope decision (2026-07-16): for this prototype, only the pre-1900
+portion is actually being downloaded**, not the full ~1.24M-record range —
+see `investigations/wikidata-bulk-download-scope-decision.md` for the full
+numbers (~1.24M full / ~2.6 GB estimated vs. ~423,000 pre-1900 / ~0.89 GB
+estimated, ~70% of the total being 20th/21st century). This plan's design
+below still describes the general, full-range capability — nothing here
+changes; the constrained scope is just a specific invocation:
+
+```sh
+node db/fetch-wikidata-persons.mjs --year-min -3000 --year-max 1899
+```
+
+The full `-3000`..`2100` run remains available — no code change is needed
+to run it later, it just isn't what's being run for this prototype right
+now.
 
 ## Summary
 

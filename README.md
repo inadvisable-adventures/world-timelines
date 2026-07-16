@@ -77,6 +77,29 @@ Wikidata's public QLever SPARQL endpoint — no setup required for the latter,
 it's just a different backend for the same query worker. See
 `plans/wikidata-qlever-data-source.md`.
 
+### Wikidata bulk download
+
+`db/fetch-wikidata-persons.mjs` bulk-downloads Wikidata `person` records
+(matching the same filters as the live query — real human, has a birth
+date, no sports figures, has an English Wikipedia page, not fictional) into
+a Postgres JSONB document collection (`wikidata_documents`), for
+offline/local use beyond the live QLever query path above. See
+`plans/wikidata-bulk-person-download.md`.
+
+**For this prototype, only pre-1900 records are downloaded** (`--year-min
+-3000 --year-max 1899`), not the full dataset. Measured directly before
+deciding: the full set matching the query filters is ~1.24M records
+(~2.6 GB estimated, extrapolated at ~2,112 bytes/row from a validated
+4,421-row sample), and **~70% of that (818,687 of 1,241,767) is
+20th/21st-century** (born 1900 or later) — leaving **~30% (423,080
+records, ~0.89 GB estimated) born in 1899 or earlier**. Limiting to that
+pre-1900 slice cuts both the download size and the runtime by roughly
+two-thirds for this prototype's purposes. The full-range capability isn't
+removed — the same script and schema support the complete `-3000`..`2100`
+range later with no code changes, just different `--year-min`/`--year-max`
+arguments (or the defaults). Full writeup:
+`investigations/wikidata-bulk-download-scope-decision.md`.
+
 ---
 
 ## Running the Ingester
