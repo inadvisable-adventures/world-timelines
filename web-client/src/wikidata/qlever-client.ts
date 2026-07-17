@@ -46,13 +46,16 @@ function sparqlString(s: string): string {
 function categoryBranch(category: EventCategory): string {
   const mapping = CATEGORY_MAP[category];
   if (!mapping) return '';
+  const typePattern = mapping.matchMode === 'transitive'
+    ? `?item wdt:P31/wdt:P279* ${mapping.typeQid} .`
+    : `?item wdt:P31 ${mapping.typeQid} .`;
   const placePattern =
     mapping.place.kind === 'direct' ? 'OPTIONAL { ?item wdt:P625 ?coord . }'
     : mapping.place.kind === 'via' ? `OPTIONAL { ?item wdt:${mapping.place.prop} ?placeItem . ?placeItem wdt:P625 ?coord . }`
     : '';
   const excludes = (mapping.excludePatterns ?? []).join('\n      ');
   return `{
-      ?item wdt:P31 ${mapping.typeQid} .
+      ${typePattern}
       ?item p:${mapping.dateProp}/psv:${mapping.dateProp} ?dateNode .
       ?dateNode wikibase:timeValue ?date ; wikibase:timePrecision ?datePrecision .
       ${placePattern}

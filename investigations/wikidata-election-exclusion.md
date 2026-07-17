@@ -82,10 +82,46 @@ campaigns, synods/church councils, treaties, etc., which were **not**
 found to have the same kind of systematic low-value clustering as sports
 seasons and narrow elections did).
 
+## Update: the exclusion is real but incomplete (found during implementation verification)
+
+While verifying the implemented exclusion end-to-end (see
+`plans/qlever-improve-event-category.md`'s Result section), an apparent
+correctness bug turned out to reveal a sharper, more important finding
+about the underlying data. The first verification pass checked results by
+searching *Wikipedia article titles* for keywords like "gubernatorial" —
+several such titles still appeared in post-exclusion results, which looked
+like the filter was failing.
+
+Checking the *actual Wikidata type* of those specific items (not their
+title) showed the filter was working correctly — the items simply weren't
+typed with any of the excluded Q-ids in the first place. For example, a
+Wikipedia article titled "1783 Maryland gubernatorial election" was found
+to carry only `wdt:P31 wd:Q40231` (the bare "public election" tier,
+deliberately kept — see the table above), **not** `Q15261477`
+("gubernatorial election," the specific excluded subtype). Direct `ASK`
+verification confirmed the mechanism itself is sound: an item independently
+confirmed to actually carry an excluded Q-id (`Q125784877`, "1777
+Connecticut gubernatorial election," confirmed `P31=Q15261477`) is
+correctly matched and excluded.
+
+**The real, accepted conclusion: Wikidata's own subtype classification for
+narrow elections is inconsistent** — many articles whose *title* clearly
+describes a gubernatorial election, mayoral election, etc. are tagged only
+with the generic bare `Q40231` "public election" class rather than the
+specific subtype a title-based intuition would expect. Since that bare
+tier is deliberately kept (it also contains genuinely significant items
+like British general elections — see above), there's no way to close this
+gap without either accepting collateral false negatives elsewhere or doing
+much more expensive per-item disambiguation (e.g. transitive matching,
+already ruled out on performance grounds — see the plan's Result section).
+This is documented as a known limitation, not pursued further: the
+exclusion still removes the great majority of the targeted noise, just not
+100% of it.
+
 ## Implemented as
 
 See `plans/qlever-improve-event-category.md` for the concrete
-implementation (a curated `FILTER NOT EXISTS` list, one clause per
-excluded Q-id, added to the `event` category's `excludePatterns`
-alongside the sports-season exclusion from
-`investigations/wikidata-sports-exclusion.md`).
+implementation — a combined `MINUS`/`VALUES` block (not one
+`FILTER NOT EXISTS` per Q-id, for performance reasons detailed there)
+covering this election-subtype list alongside the sports-noise exclusions
+from `investigations/wikidata-sports-exclusion.md`.

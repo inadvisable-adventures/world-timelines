@@ -1,4 +1,77 @@
-# Improve the QLever `event` category: coverage fix + noise reduction
+# Improve the QLever `event` category: coverage fix + noise reduction — COMPLETED
+
+## Result (2026-07-16)
+
+Implemented largely as designed, with one significant discovery during
+implementation that changed the exclusion mechanism: **stacking many
+transitive (`wdt:P31/wdt:P279*`) `FILTER NOT EXISTS` clauses is
+catastrophically slow** — measured directly: the originally-planned 10
+separate transitive exclusion clauses (this plan's original design)
+combined with the already-transitive event-type match and the
+Wikipedia-required join took **53s for the base case and 60s–90s+
+(timing out) once combined with a realistic full query** — worse than
+useless, since it exceeds the client's own 45s timeout.
+
+Root-caused by elimination (isolating the type match, the Wikipedia join,
+and each filter individually — all fast alone) to the *combination* of
+several transitive-closure subqueries. The fix: **one combined `MINUS` +
+`VALUES` block using exact (non-transitive) `wdt:P31` matching**, replacing
+10 separate `FILTER NOT EXISTS` clauses:
+
+```sparql
+MINUS {
+  ?item wdt:P31 ?excludedType .
+  VALUES ?excludedType { wd:Q27020041 wd:Q18608583 wd:Q18536594 wd:Q15261477 wd:Q1057954 wd:Q24397514 wd:Q26466721 wd:Q15280243 wd:Q152450 wd:Q7864918 wd:Q24333627 wd:Q112711344 }
+}
+```
+
+This measured **~2–6s** for the same query shapes that previously timed
+out, verified correct by direct `ASK` checks (an item confirmed typed with
+an excluded Q-id is confirmed excluded by this pattern) — an earlier
+apparent "correctness bug" during testing turned out to be a false alarm
+from checking result *titles* for keywords like "gubernatorial" instead of
+checking actual Wikidata types; several such titles turned out to be typed
+only as the generic bare "public election" (deliberately kept, see
+`investigations/wikidata-election-exclusion.md`), not the specific
+excluded subtype.
+
+**Two more exclusion classes added beyond the original plan**, found
+during end-to-end verification (not chased further beyond these, to avoid
+open-ended scope creep — this is a documented, accepted "not exhaustive"
+limitation, not a new open investigation):
+- `Q18608583` "recurring sporting event" — the competition series itself
+  (as opposed to `Q27020041`, one year's edition).
+- `Q18536594` "Olympic sporting event" — one discipline within one
+  Olympics (e.g. "cycling at the 1896 Summer Olympics – men's 100
+  kilometres") — extremely high volume, same low-individual-significance
+  pattern as sports seasons.
+
+**Also observed, not fixed (out of scope, a pre-existing Wikidata data
+quality characteristic, not a bug in this code)**: a small number of
+items carry clearly wrong `P585` dates — e.g. "UIM F2 World Championship"
+(a real-world 2019-founded motorsport series) had a `P585` value of
+`0002-01-01`, and "2022 Estadio Corregidora riots" had a `P585` value of
+year 40. Both were incidentally excluded by the sports/event-class filters
+above (coincidentally, not because the date was checked), but similar bad
+dates could appear attached to items outside the excluded classes.
+Something to be aware of when reviewing Wikidata-sourced results,
+independent of anything this plan changed.
+
+**End-to-end verification** (via the actual built `queryQLever()`
+function, not just standalone SPARQL):
+- Coverage fix confirmed: `-3000`..`-500` now returns real ancient events
+  ("Egyptian Invasion of Kerma," "Cimmerian invasion of Phrygia," "Gedrosian
+  campaign," in ~230ms) instead of zero.
+- Noise reduction confirmed: a `1700`..`1899`, `LIMIT 100` query returned
+  94 results (after dedup) with zero sports-season, recurring-sporting-event,
+  or Olympic-sub-event titles, in ~1.8s.
+- **Not exhaustive, by design**: some narrow election articles (e.g. a
+  "Melbourne Cup" annual horse race, a Virginia congressional district
+  election) still appear, because they're typed with Wikidata classes not
+  in the curated exclusion list. Chasing every remaining narrow class was
+  deliberately not pursued further — the net effect is a real, substantial
+  improvement, not a perfect one, consistent with how the sports-figure
+  and election investigations already accepted similar known gaps.
 
 ## Summary
 

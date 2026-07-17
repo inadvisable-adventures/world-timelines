@@ -76,9 +76,36 @@ list rather than one blanket class — see
 **Where it applies**: the `event` category branch. No person-category
 equivalent needed (sports seasons aren't people).
 
+## Part 2a: two more sports-noise classes, found during implementation verification
+
+While implementing and end-to-end verifying the exclusion above (see
+`plans/qlever-improve-event-category.md`'s Result section), spot-checking
+a `1700`..`1899` sample turned up two more classes with the same
+low-individual-significance, high-volume pattern as "sports season," not
+caught by the `Q27020041` exclusion because they're distinct Wikidata
+classes rather than subclasses of it:
+
+- **`Q18608583` ("recurring sporting event")** — the competition series
+  itself (e.g. "Tour de France" as a standing event), as opposed to
+  `Q27020041`, which is one year's edition of a season. Same reasoning as
+  Part 1/2: not a distinct historical happening at a point in time.
+- **`Q18536594` ("Olympic sporting event")** — one discipline within one
+  Olympics (e.g. "cycling at the 1896 Summer Olympics – men's 100
+  kilometres"). Extremely high volume relative to its individual
+  significance, same pattern as the other two.
+
+Both were added to the same combined exclusion mechanism as the
+sports-season and election exclusions (see
+`plans/qlever-improve-event-category.md` for why a single `MINUS`/`VALUES`
+block was used instead of one `FILTER NOT EXISTS` per class). Not chased
+further beyond these two — an accepted, documented "not exhaustive"
+limitation rather than an open-ended search for every remaining
+sports-adjacent class.
+
 ## Implemented as
 
-TODO item covering this (alongside the election-subtype and
-sports-season exclusions together) — see `plans/qlever-improve-event-category.md`
-(or whichever plan file ultimately covers the `event` category changes)
-for the concrete implementation.
+See `plans/qlever-improve-event-category.md` for the concrete
+implementation (a combined `MINUS`/`VALUES` block covering the
+sports-season and sports-noise classes above alongside the election-subtype
+exclusion from `investigations/wikidata-election-exclusion.md`), including
+the performance investigation that shaped how the exclusion is expressed.
