@@ -1,4 +1,55 @@
-# Investigate sources of historical boundary, journey, trade-route, and building-project data
+# Investigate sources of historical boundary, journey, trade-route, and building-project data — COMPLETED
+
+## Result (2026-07-19)
+
+Completed as a pure research/write-up pass, per the plan below — no code
+or dependencies were added. Four parallel research passes (one per
+category) fetched and verified real, currently-accessible datasets rather
+than relying on memory. Full findings, per-source license/format/fit
+tables, and citations are in
+`investigations/historical-boundary-journey-trade-data-sources.md`.
+
+Headline results:
+
+- **Boundaries**: strong fit found — **Cliopatria** (Seshat Global History
+  Databank), a single CC BY 4.0 GeoJSON with explicit `FromYear`/`ToYear`
+  fields spanning 3400 BCE–2024 CE, maps directly onto the app's existing
+  `polygon`/`multipolygon` model.
+- **Trade routes**: strong fit found — **Itiner-e**, a peer-reviewed 2025
+  Roman road network (14,769 segments, CC BY 4.0, actively maintained);
+  **OWTRAD** (Ciolek/ANU) is the only source found with real coordinate
+  data for the Silk Road/trans-Saharan routes specifically, but is
+  non-commercial-licensed and unmaintained since ~2007–2012.
+- **Journeys**: patchwork — a ready-to-use **HMS Beagle voyage GeoJSON**
+  (ClimateViewer, CC BY-NC-SA 4.0) is the strongest single hit, but
+  **no structured dataset exists at all** for the Polynesian/Austronesian
+  migration the user specifically named — an honest negative finding;
+  that example would need to be hand-built from settlement-date
+  literature rather than imported.
+- **Building projects**: **OpenStreetMap via Overpass** (keyed off
+  Wikidata's `P402` property) is the best general-purpose source —
+  verified the Great Wall of China's OSM relation (318110, 6,130 way
+  members, actively edited) and Hadrian's Wall's dedicated WHS boundary
+  relation. None of the geometry sources across any category carry
+  construction-phase/date metadata — that would need to be this app's own
+  hand-curated event data layered on top.
+- **Cross-cutting finding**: across all four categories, Wikidata itself
+  is consistently a good *index* into other geometry sources (via `P402`
+  for OSM relations, `P3896` for Commons geoshapes) but never a reliable
+  geometry source on its own — `P625` is always a single representative
+  point, never a path or polygon, for anything linear or large. This
+  echoes what TODO items 6–10 already found for point coordinates.
+
+A concrete first implementation slice was identified (Cliopatria for one
+empire + the Beagle voyage GeoJSON + the Great Wall's OSM relation, three
+different source types as separate proofs of concept) but was **not**
+turned into a new TODO item per this project's process — it's recorded in
+`PARKINGLOT.md` instead, to be moved to `TODO.md` when the user is ready
+to act on it.
+
+The corresponding brainstorm item in `PARKINGLOT.md` (about rich map
+representations lacking a data source) was removed, replaced by the new,
+more concrete parking-lot entry described above.
 
 ## Summary
 
