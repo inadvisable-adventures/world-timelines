@@ -130,6 +130,14 @@ export async function getEntriesByIds(rawIds: unknown): Promise<unknown[]> {
       e.description,
       e.tags,
       e.last_updated AS "lastUpdated",
+      -- Empty for entries seeded before citation_url existed (defaulted
+      -- in JS below, not here, so the fallback Wikipedia URL gets
+      -- correctly percent-encoded — string concatenation in SQL can't do
+      -- that). New sources (e.g. Cliopatria) set both columns explicitly.
+      -- See CLAUDE.md's data-provenance principle and entries.citation_url's
+      -- own comment in schema.sql.
+      e.citation_url AS "citationUrl",
+      e.citation_label AS "citationLabel",
       jsonb_build_object(
         'originalExpression', e.start_expr,
         'detectedCalendar', e.calendar,
@@ -171,5 +179,15 @@ export async function getEntriesByIds(rawIds: unknown): Promise<unknown[]> {
     ) loc ON true
     WHERE e.id = ANY(string_to_array(:'ids', ',')::uuid[])
   `;
-  return runQuery(sql, { ids: ids.join(',') });
+  interface Row { title: string; citationUrl: string; citationLabel: string; [key: string]: unknown }
+  const rows = await runQuery<Row>(sql, { ids: ids.join(',') });
+  // Fallback for entries seeded before citation_url existed — built in JS
+  // (not SQL) so the URL gets correctly percent-encoded; every such entry
+  // really is Wikipedia-sourced (see entries.citation_url's comment in
+  // schema.sql).
+  return rows.map(row => ({
+    ...row,
+    citationUrl: row.citationUrl || `https://en.wikipedia.org/wiki/${encodeURIComponent(row.title)}`,
+    citationLabel: row.citationLabel || 'Wikipedia',
+  }));
 }

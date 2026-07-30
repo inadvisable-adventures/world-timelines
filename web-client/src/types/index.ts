@@ -86,6 +86,13 @@ export interface HistoricalEvent {
   tags: string[];               // e.g. ['no-coords-found']
   lastUpdated: string;          // ISO 8601; drives the IndexedDB cache
   wikipediaTitle: string;       // exact enwiki article title, for building a Wikipedia link
+  // Citation back to this entry's origin (CLAUDE.md's data-provenance
+  // principle) — what entry-detail.ts actually renders/links to. Always
+  // populated, source-agnostic (e.g. 'Wikipedia' for Wikipedia/Wikidata-
+  // sourced entries, 'Cliopatria (Seshat Global History Databank)' for
+  // boundary imports).
+  citationUrl: string;
+  citationLabel: string;
 }
 
 // ---------------------------------------------------------------------------

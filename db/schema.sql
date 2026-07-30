@@ -68,8 +68,22 @@ CREATE TABLE IF NOT EXISTS entries (
   infobox_type      TEXT NOT NULL DEFAULT '',
   description       TEXT NOT NULL DEFAULT '',
   tags              TEXT[] NOT NULL DEFAULT '{}',
+  -- Citation back to this entry's origin (CLAUDE.md's data-provenance
+  -- principle). Empty for entries seeded before this column existed —
+  -- local-concept-server falls back to a Wikipedia-title-based link for
+  -- those, since every pre-existing seeded entry really is Wikipedia-
+  -- sourced (see entries.ts). New sources (e.g. Cliopatria) always set
+  -- both explicitly.
+  citation_url      TEXT NOT NULL DEFAULT '',
+  citation_label    TEXT NOT NULL DEFAULT '',
   last_updated      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Idempotent add for a database created before these columns existed
+-- (CREATE TABLE IF NOT EXISTS above is a no-op against an already-live
+-- table, so re-running this file wouldn't otherwise pick up the change).
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS citation_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS citation_label TEXT NOT NULL DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS entries_start_end_year_idx ON entries (start_year, end_year);
 CREATE INDEX IF NOT EXISTS entries_category_idx ON entries (category);

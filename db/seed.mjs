@@ -175,15 +175,26 @@ function locationToSql(loc, entryIdSql, ordinal) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const [entriesTsv, erasTsv, lanesetsJsonRaw] = await Promise.all([
+  const [entriesTsv, erasTsv, lanesetsJsonRaw, cliopatriaJsonRaw] = await Promise.all([
     readFile(path.join(DATA_DIR, 'collected_entries.sample.tsv'), 'utf8'),
     readFile(path.join(DATA_DIR, 'historical_eras.tsv'), 'utf8'),
     readFile(path.join(DATA_DIR, 'lanesets.json'), 'utf8'),
+    readFile(path.join(DATA_DIR, 'cliopatria-boundaries.json'), 'utf8'),
   ]);
   const lanesetsData = JSON.parse(lanesetsJsonRaw);
+  // Already entry-shaped (see db/fetch-cliopatria-mongol.mjs) — no TSV
+  // parsing needed, but citationUrl/citationLabel need defaulting to ''
+  // for the TSV-derived rows below, since parseEntriesTsv doesn't produce
+  // those fields (see db/schema.sql's citation_url/citation_label comment
+  // for the fallback behavior this relies on).
+  const cliopatriaRows = JSON.parse(cliopatriaJsonRaw);
 
   // Entries also holds historical eras — see db/schema.sql for why.
-  const entryRows = [...parseEntriesTsv(entriesTsv), ...parseEntriesTsv(erasTsv)];
+  const entryRows = [
+    ...parseEntriesTsv(entriesTsv).map(row => ({ ...row, citationUrl: '', citationLabel: '' })),
+    ...parseEntriesTsv(erasTsv).map(row => ({ ...row, citationUrl: '', citationLabel: '' })),
+    ...cliopatriaRows,
+  ];
 
   const entryValues = [];
   const locationValues = [];
@@ -194,7 +205,8 @@ async function main() {
       `${sqlNumber(row.endYear)}, ${sqlNumber(row.endMonth)}, ${sqlNumber(row.endDay)}, ` +
       `${sqlString(row.startExpr)}, ${sqlString(row.endExpr)}, ${sqlString(row.calendar)}, ` +
       `${sqlNumber(row.uncertaintyYears)}, ${sqlString(row.category)}, ${sqlString(row.infoboxType)}, ` +
-      `${sqlString(row.description)}, ${sqlTextArray(row.tags)}, now())`);
+      `${sqlString(row.description)}, ${sqlTextArray(row.tags)}, ` +
+      `${sqlString(row.citationUrl)}, ${sqlString(row.citationLabel)}, now())`);
 
     row.locations.forEach((loc, ordinal) => {
       locationValues.push(locationToSql(loc, idSql, ordinal));
@@ -224,7 +236,7 @@ async function main() {
     sqlParts.push(
       'INSERT INTO entries (id, slug, title, start_year, start_month, start_day, ' +
       'end_year, end_month, end_day, start_expr, end_expr, calendar, uncertainty_years, ' +
-      'category, infobox_type, description, tags, last_updated) VALUES\n' +
+      'category, infobox_type, description, tags, citation_url, citation_label, last_updated) VALUES\n' +
       entryValues.join(',\n') + ';',
     );
   }

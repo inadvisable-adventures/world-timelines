@@ -27,6 +27,7 @@ export class EntryDetailElement extends HTMLElement {
   private linkEl!: HTMLAnchorElement;
   private yearsEl!: HTMLElement;
   private catEl!: HTMLElement;
+  private sourceEl!: HTMLElement;
   private descEl!: HTMLElement;
   private onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') this.hide(); };
 
@@ -38,6 +39,7 @@ export class EntryDetailElement extends HTMLElement {
     this.linkEl = shadow.getElementById('detail-link') as HTMLAnchorElement;
     this.yearsEl = shadow.getElementById('detail-years')!;
     this.catEl  = shadow.getElementById('detail-cat')!;
+    this.sourceEl = shadow.getElementById('detail-source')!;
     this.descEl = shadow.getElementById('detail-desc')!;
 
     shadow.getElementById('close-btn')!.addEventListener('click', () => this.hide());
@@ -51,12 +53,13 @@ export class EntryDetailElement extends HTMLElement {
 
   show(ev: HistoricalEvent): void {
     this.linkEl.textContent = ev.title;
-    this.linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(ev.wikipediaTitle)}`;
+    this.linkEl.href = ev.citationUrl;
     this.yearsEl.textContent = formatYears(ev);
     const color = CATEGORY_COLORS[ev.category];
     this.catEl.textContent = ev.category.replace(/_/g, ' ');
     this.catEl.style.color = color;
     this.catEl.style.borderColor = color;
+    this.sourceEl.textContent = `· ${ev.citationLabel}`;
     this.descEl.textContent = ev.description;
     this.classList.remove('hidden');
   }
@@ -70,6 +73,7 @@ export class EntryDetailElement extends HTMLElement {
     this.catEl.textContent = 'lane';
     this.catEl.style.color = '#c8a060';
     this.catEl.style.borderColor = '#c8a060';
+    this.sourceEl.textContent = '';
     this.descEl.textContent = description;
     this.classList.remove('hidden');
   }

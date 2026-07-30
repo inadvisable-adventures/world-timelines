@@ -1,4 +1,50 @@
-# Import Mongol Empire boundaries from Cliopatria (TODO item 12)
+# Import Mongol Empire boundaries from Cliopatria (TODO item 12) — COMPLETED
+
+## Result (2026-07-30)
+
+Implemented as designed. `node db/fetch-cliopatria-mongol.mjs` downloads
+and filters the live Cliopatria dataset down to the 12 Mongol Empire
+time-slices (1206–1293 CE) and writes
+`web-client/public/data/cliopatria-boundaries.json`; `db/seed.mjs` loads
+it alongside the existing TSV/lanesets data. Both `web-client` and
+`local-concept-server` build cleanly (`tsc --noEmit`-equivalent).
+
+**Bug found and fixed during verification**: the first version of the
+Postgres-path citation fallback built the Wikipedia URL via raw SQL
+string concatenation (`'https://en.wikipedia.org/wiki/' || e.title`),
+losing the `encodeURIComponent` the old client-side code used to apply —
+confirmed via a live API check that it produced a URL with a literal
+unencoded space (`.../wiki/Great Pyramid of Giza`), a regression for any
+title containing spaces or special characters. Fixed by moving the
+fallback into JS in `getEntriesByIds` (`entries.ts`) instead of SQL,
+re-verified producing the correct `Great%20Pyramid%20of%20Giza`.
+
+**Verified**:
+- All 12 entries loaded into Postgres with valid geometry
+  (`ST_IsValid` true for every one, checked directly — the known
+  continent-lane self-intersection issue in `PARKINGLOT.md` made this
+  worth confirming rather than assuming) and correct `citation_url`/
+  `citation_label`.
+- `/api/entries/by-ids` returns the correct `multipolygon` location shape
+  and citation fields for a Cliopatria entry, and the corrected Wikipedia
+  fallback for a pre-existing entry (regression check).
+- `/api/entries?yearMin=1250&yearMax=1300&category=pol_mil_organization`
+  (the actual query shape the running app issues) returns exactly the 5
+  Mongol Empire slices overlapping that range — confirms the entries are
+  reachable through the real query path, not just by direct id lookup.
+- Server log clean across all of the above, no errors.
+
+**Not visually verified in a browser**: no browser automation tool was
+available in this session (the Claude in Chrome extension install was
+declined). The plan's step 5 anticipated this — API-level verification
+above stands in: the query path, geometry shape, and citation fields are
+all confirmed correct via direct HTTP checks, and the client's
+`drawLocations`/`CATEGORY_COLORS` code (`world-map.ts`) already handles
+`multipolygon` and `pol_mil_organization` generically (used by other,
+already-verified entries), so there's no new client-side code path this
+import exercises that wasn't already working. Still, an actual visual
+check hasn't happened — flagging it explicitly rather than claiming it
+was done. Worth a manual check next time a browser is available.
 
 ## Summary
 

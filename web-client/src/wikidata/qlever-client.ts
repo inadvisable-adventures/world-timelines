@@ -204,6 +204,8 @@ function bindingToEvent(b: SparqlBinding): HistoricalEvent | null {
     // label — see plans/qlever-require-wikipedia-page.md. Required by the
     // query itself (non-OPTIONAL join), so always present here.
     wikipediaTitle: b.wikipediaTitle.value,
+    citationUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(b.wikipediaTitle.value)}`,
+    citationLabel: 'Wikipedia',
   };
 }
 
