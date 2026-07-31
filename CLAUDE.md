@@ -1,5 +1,6 @@
 # Project instructions
 
+- unless instructed otherwise, follow the process in ./development-process.md
 - always use TypeScript in strict mode.
 - avoid adding dependencies, prefer bespoke solutions.
 - prefer static type imports at the top of a file rather than inline ones.
