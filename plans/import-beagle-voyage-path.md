@@ -1,4 +1,4 @@
-# Import the HMS Beagle voyage as a `path` entry (TODO item 13)
+# Import the HMS Beagle voyage as a `path` entry (TODO item 13) — COMPLETED
 
 ## Summary
 
@@ -10,9 +10,7 @@ still untouched). This is the "journey" leg of the three-part
 first-implementation-slice idea in `PARKINGLOT.md` (Cliopatria's
 boundaries leg is done — TODO item 12 — this is the second).
 
-**Not implemented yet** — this plan captures the design and a verified
-data survey so implementation can start directly next time, per the
-user's request to plan without building.
+Implemented — see the Result section at the end of this file.
 
 ## Data source, verified live
 
@@ -133,3 +131,74 @@ implemented and used nowhere yet) both already exist.
    ordered waypoints and correct `citationUrl`/`citationLabel`.
 4. Visual check in a browser once one is available (same caveat as TODO
    12 — flag explicitly if skipped again rather than assumed).
+
+## Result
+
+Implemented as designed, with the date-parsing regex refined beyond the
+naive version tested during planning:
+
+- **Waypoint filtering**: 149 of 169 features matched the `^#\d+\s*=`
+  name prefix, confirmed via a hard `throw` in the script if this count
+  ever drifts (source-schema-change guard, same pattern as Cliopatria's
+  `POLITY_NAME` check). The one duplicate number (`#106`, used for both
+  "Maypu" and "Climbed the Andes Mountains") was kept as two separate
+  waypoints rather than deduplicated — both are real, distinct points on
+  the route; JS's stable sort preserved their original (geographically
+  sensible) relative order.
+- **Date extraction**: the naive `Month Day, Year` regex from the
+  planning survey (5/149 matches) was replaced with two patterns —
+  `<day> of <Month> [year]` and `<Month> <day>[, year]` — tried against
+  every position in the text, plus a bare-ordinal-day fallback. Critically,
+  the month-word groups had to be restricted to actual month names (not
+  a generic `[A-Za-z]+`): with a generic word group, false positives like
+  `"Page 74"` or `"the 6th"` matched *before* the real date fragment
+  later in the same string, because JS regex scanning always returns the
+  leftmost starting match. This raised the match rate to 78/149 (52%),
+  with the remaining 71 filled by linear interpolation between dated
+  neighbors, per plan.
+- **Year-rollover heuristic** (not anticipated in the original plan): the
+  month/year carry-forward cursor needed one addition — when a fragment
+  states a month with no year, and that month is numerically *less than*
+  the cursor's current month (e.g. cursor at December, fragment says
+  "February"), treat it as an implicit new-year rollover rather than a
+  same-year regression. Without this, one waypoint (the Concepción
+  earthquake, real date February 1835) resolved to February *1834*,
+  produced a false monotonicity violation, and would have pulled its
+  linearly-interpolated neighbors backward too.
+- **Monotonicity**: per the plan's suggested sanity check, `t` values
+  were verified for end-to-end non-decrease. 12 of 148 waypoint-to-
+  waypoint transitions still go backward after the rollover fix. Checked
+  each by hand against the real voyage history rather than patched away:
+  they cluster in exactly the regions where *The Voyage of the Beagle*
+  itself narrates by location/theme instead of strict chronological
+  order — the Falklands/Santa Cruz/Strait of Magellan area (the book
+  revisits the Falklands' first 1833 visit after already covering the
+  chronologically-later 1834 Santa Cruz exploration) and a few Chilean
+  side-trips (Valparaiso/Andes, Chonos Archipelago). This is a real
+  property of the source narrative, not a parser defect — left as-is per
+  the plan's "flagged honestly rather than waved away" instruction,
+  rather than force-correcting the historical account.
+- **Per-waypoint uncertainty**: the plan's design-decisions section
+  mentioned "a correspondingly larger `uncertaintyYears`/month value" on
+  interpolated waypoints, but `PathLocation.waypoints[]` (`types/index.ts`)
+  has no per-waypoint uncertainty field, and the plan's own "Affected
+  files" section committed to no schema/type changes — a small
+  inconsistency in the original plan. Resolved by not adding one:
+  interpolated waypoints are visually indistinguishable from dated ones
+  in the current schema. Worth a follow-up TODO item if per-waypoint
+  uncertainty display is wanted later.
+- **`seed.mjs`** generalization: `EXTRA_ENTRY_FILES` now lists both
+  `cliopatria-boundaries.json` and `beagle-voyage.json`, read in parallel
+  and flattened, replacing the one-off hardcoded single extra file.
+- **Verification performed**: fetch script run directly (149 waypoints,
+  first/last coordinates and dates match known history: Plymouth
+  1831-12-27 → Falmouth 1836-10-02); `tsc --noEmit` clean in `web-client/`
+  (no `.ts` files were touched, but the generated JSON must still satisfy
+  `PathLocation`'s shape, which it does); `db/init-db.sh` run end-to-end
+  (169 entries seeded, including the new one); direct Postgres query
+  confirmed 1 `path`-kind `entry_locations` row with 149 waypoints;
+  direct `/api/entries/by-ids` call against the running
+  `local-concept-server` confirmed the same entry, correct `citationUrl`/
+  `citationLabel`, and 149 ordered waypoints reachable via the real
+  client-facing query path. **Not visually verified in a browser** — no
+  browser tool available this session, same caveat as TODO 12.

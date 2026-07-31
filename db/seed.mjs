@@ -22,6 +22,14 @@ const PGDATA = process.env.PGDATA_SOCKET_DIR || path.join(REPO_ROOT, 'db', '.pgd
 const PGDATABASE = process.env.PGDATABASE || 'world_timelines';
 const PSQL = process.env.PG_BIN_DIR ? path.join(process.env.PG_BIN_DIR, 'psql') : 'psql';
 
+// Already entry-shaped JSON files (see db/fetch-cliopatria-mongol.mjs,
+// db/fetch-beagle-voyage.mjs) -- no TSV parsing needed, but citationUrl/
+// citationLabel need defaulting to '' for the TSV-derived rows below,
+// since parseEntriesTsv doesn't produce those fields (see db/schema.sql's
+// citation_url/citation_label comment for the fallback behavior this
+// relies on).
+const EXTRA_ENTRY_FILES = ['cliopatria-boundaries.json', 'beagle-voyage.json'];
+
 const VALID_CATEGORIES = new Set([
   'person', 'event', 'place', 'artifact', 'pol_mil_organization',
   'business', 'historical_period', 'concepts', 'other',
@@ -175,25 +183,20 @@ function locationToSql(loc, entryIdSql, ordinal) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const [entriesTsv, erasTsv, lanesetsJsonRaw, cliopatriaJsonRaw] = await Promise.all([
+  const [entriesTsv, erasTsv, lanesetsJsonRaw, ...extraJsonRaw] = await Promise.all([
     readFile(path.join(DATA_DIR, 'collected_entries.sample.tsv'), 'utf8'),
     readFile(path.join(DATA_DIR, 'historical_eras.tsv'), 'utf8'),
     readFile(path.join(DATA_DIR, 'lanesets.json'), 'utf8'),
-    readFile(path.join(DATA_DIR, 'cliopatria-boundaries.json'), 'utf8'),
+    ...EXTRA_ENTRY_FILES.map(f => readFile(path.join(DATA_DIR, f), 'utf8')),
   ]);
   const lanesetsData = JSON.parse(lanesetsJsonRaw);
-  // Already entry-shaped (see db/fetch-cliopatria-mongol.mjs) — no TSV
-  // parsing needed, but citationUrl/citationLabel need defaulting to ''
-  // for the TSV-derived rows below, since parseEntriesTsv doesn't produce
-  // those fields (see db/schema.sql's citation_url/citation_label comment
-  // for the fallback behavior this relies on).
-  const cliopatriaRows = JSON.parse(cliopatriaJsonRaw);
+  const extraRows = extraJsonRaw.flatMap(raw => JSON.parse(raw));
 
   // Entries also holds historical eras — see db/schema.sql for why.
   const entryRows = [
     ...parseEntriesTsv(entriesTsv).map(row => ({ ...row, citationUrl: '', citationLabel: '' })),
     ...parseEntriesTsv(erasTsv).map(row => ({ ...row, citationUrl: '', citationLabel: '' })),
-    ...cliopatriaRows,
+    ...extraRows,
   ];
 
   const entryValues = [];

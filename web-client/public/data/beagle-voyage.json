@@ -1,0 +1,925 @@
+[
+  {
+    "slug": "hms-beagle-voyage",
+    "title": "HMS Beagle voyage (1831–1836)",
+    "startYear": 1831,
+    "startMonth": 12,
+    "startDay": 27,
+    "endYear": 1836,
+    "endMonth": 10,
+    "endDay": 2,
+    "startExpr": "December 27, 1831",
+    "endExpr": "October 2, 1836",
+    "calendar": "gregorian",
+    "uncertaintyYears": 0,
+    "category": "event",
+    "infoboxType": "",
+    "description": "The route of HMS Beagle's second survey voyage (1831–1836), during which naturalist Charles Darwin gathered the observations that would eventually lead to On the Origin of Species. Departed Plymouth, England on 27 December 1831 and returned to Falmouth on 2 October 1836. 149 waypoints reconstructed from the ClimateViewer \"Voyage of the Beagle\" map, with dates extracted from Darwin's own journal excerpts where stated and linearly interpolated between the nearest dated waypoints otherwise.",
+    "tags": [
+      "climateviewer"
+    ],
+    "citationUrl": "https://climateviewer.org/history-and-science/explorers/maps/charles-darwin-voyage-of-the-beagle-1832-1836/",
+    "citationLabel": "ClimateViewer (MyReadingMapped)",
+    "locations": [
+      {
+        "type": "path",
+        "waypoints": [
+          {
+            "lat": 50.329683,
+            "lng": -4.158325,
+            "t": 0,
+            "label": "Charles Darwin's Start - Plymouth"
+          },
+          {
+            "lat": 28.485742,
+            "lng": -16.226463,
+            "t": 0.005743825387708214,
+            "label": "Canary Islands"
+          },
+          {
+            "lat": 14.904312,
+            "lng": -23.50284600000001,
+            "t": 0.011487650775416428,
+            "label": "Cape Verde Islands"
+          },
+          {
+            "lat": 0.920065,
+            "lng": -29.344482,
+            "t": 0.02929350947731189,
+            "label": "St. Paul's Rocks Island"
+          },
+          {
+            "lat": -3.835138,
+            "lng": -32.402716,
+            "t": 0.03159103963239517,
+            "label": "Archipelago de Fernando de Noronha, Brazil"
+          },
+          {
+            "lat": -12.97378,
+            "lng": -38.526306,
+            "t": 0.03676048248133257,
+            "label": "San Salvador, Brazil"
+          },
+          {
+            "lat": -22.887879,
+            "lng": -42.011032,
+            "t": 0.045376220562894885,
+            "label": "Cape Frio, Brazil"
+          },
+          {
+            "lat": -22.699357,
+            "lng": -42.032962,
+            "t": 0.05399195864445721,
+            "label": "Campos Novos, Brazil"
+          },
+          {
+            "lat": -22.354561,
+            "lng": -41.785426,
+            "t": 0.06260769672601953,
+            "label": "Rio Macae, Brazil"
+          },
+          {
+            "lat": -22.359522,
+            "lng": -41.79388,
+            "t": 0.09190120620333142,
+            "label": "Botofogo, Brazil"
+          },
+          {
+            "lat": -34.898462,
+            "lng": -56.20214900000001,
+            "t": 0.12176909821941413,
+            "label": "Montevideo, Uruguay"
+          },
+          {
+            "lat": -34.931823,
+            "lng": -54.97077900000001,
+            "t": 0.15106260769672603,
+            "label": "Maldonado, Uruguay"
+          },
+          {
+            "lat": -34.365827,
+            "lng": -55.234108,
+            "t": 0.18093049971280872,
+            "label": "Las Minas, Uruguay"
+          },
+          {
+            "lat": -33.933106,
+            "lng": -55.18158,
+            "t": 0.21079839172889145,
+            "label": "Polanco River, Uruguay"
+          },
+          {
+            "lat": -34.776306,
+            "lng": -55.223465,
+            "t": 0.24066628374497415,
+            "label": "Pan de Azucar, Uruguay"
+          },
+          {
+            "lat": -34.698578,
+            "lng": -55.323544,
+            "t": 0.27053417576105687,
+            "label": "Sierra de las Animas, Uruguay"
+          },
+          {
+            "lat": -34.831841,
+            "lng": -55.075836,
+            "t": 0.30040206777713957,
+            "label": "Laguna de Potrero, Uruguay"
+          },
+          {
+            "lat": -41.041038,
+            "lng": -62.777252,
+            "t": 0.33026995979322227,
+            "label": "Rio Negro, Argentina"
+          },
+          {
+            "lat": -40.809132,
+            "lng": -62.977753,
+            "t": 0.334290637564618,
+            "label": "Patagones, Argentina"
+          },
+          {
+            "lat": -40.450082,
+            "lng": -62.95234700000002,
+            "t": 0.3388856978747846,
+            "label": "Salt Marsh"
+          },
+          {
+            "lat": -39.525362,
+            "lng": -62.67374,
+            "t": 0.34348075818495116,
+            "label": "Rio Colorado, Argentina"
+          },
+          {
+            "lat": -38.706946,
+            "lng": -62.259521,
+            "t": 0.34807581849511776,
+            "label": "Bahia Blanca, Argentina"
+          },
+          {
+            "lat": -38.883817,
+            "lng": -62.078934,
+            "t": 0.3526708788052843,
+            "label": "Punta Alta, Argentina / Fossils and remains of large anmials found"
+          },
+          {
+            "lat": -38.11403,
+            "lng": -61.78024300000001,
+            "t": 0.3572659391154509,
+            "label": "Sierra de La Ventana, Argentina"
+          },
+          {
+            "lat": -36.370433,
+            "lng": -60.031357,
+            "t": 0.36186099942561745,
+            "label": "Tapalguen River"
+          },
+          {
+            "lat": -35.288227,
+            "lng": -59.512939,
+            "t": 0.3624353819643883,
+            "label": "Rio Salado, Argentina"
+          },
+          {
+            "lat": -34.646766,
+            "lng": -58.38134800000001,
+            "t": 0.36358414704192993,
+            "label": "Buenos Aires, Argentina"
+          },
+          {
+            "lat": -34.268566,
+            "lng": -59.45526100000001,
+            "t": 0.3658816771970132,
+            "label": "Arreco, Argentina"
+          },
+          {
+            "lat": -33.321349,
+            "lng": -60.240784,
+            "t": 0.3687535898908673,
+            "label": "San Nicolas, Uruguay"
+          },
+          {
+            "lat": -32.962586,
+            "lng": -60.65826399999999,
+            "t": 0.36990235496840895,
+            "label": "Rozario, Uruguay"
+          },
+          {
+            "lat": -31.639352,
+            "lng": -60.69809000000001,
+            "t": 0.3710511200459506,
+            "label": "Santa Fe, Uruguay"
+          },
+          {
+            "lat": -31.730138,
+            "lng": -60.53363800000001,
+            "t": 0.3721998851234922,
+            "label": "Bajada, Uruguay"
+          },
+          {
+            "lat": -31.837899,
+            "lng": -60.59783899999999,
+            "t": 0.3767949454336588,
+            "label": "Return by boat to Buenos Aires, Argentina"
+          },
+          {
+            "lat": -34.885796,
+            "lng": -56.08912099999999,
+            "t": 0.3819643882825962,
+            "label": "Punta Gorda"
+          },
+          {
+            "lat": -33.682003,
+            "lng": -59.66516500000002,
+            "t": 0.38655944859276276,
+            "label": "San Pedro"
+          },
+          {
+            "lat": -33.251321,
+            "lng": -58.033905,
+            "t": 0.3917288914417002,
+            "label": "Mercedes, Uruguay"
+          },
+          {
+            "lat": -34.469203,
+            "lng": -57.84473400000001,
+            "t": 0.3968983342906376,
+            "label": "Colonia del Sacramiento, Argentina"
+          },
+          {
+            "lat": -33.923406,
+            "lng": -58.214278,
+            "t": 0.3980470993681792,
+            "label": "Arroyo de Las Viboras"
+          },
+          {
+            "lat": -47.75689700000001,
+            "lng": -65.903807,
+            "t": 0.41757610568638714,
+            "label": "Port Desire, Argentina"
+          },
+          {
+            "lat": -47.822607,
+            "lng": -66.165676,
+            "t": 0.4491671453187823,
+            "label": "Sailed up river"
+          },
+          {
+            "lat": -50.02329200000001,
+            "lng": -68.510141,
+            "t": 0.4813325674899483,
+            "label": "Santa Cruz, Argentina"
+          },
+          {
+            "lat": -50.21206400000001,
+            "lng": -71.029358,
+            "t": 0.49339460080413555,
+            "label": "Hauled row boats up stream"
+          },
+          {
+            "lat": -49.30766500000001,
+            "lng": -67.71389,
+            "t": 0.4273406088454911,
+            "label": "Port San Julian, Argentina"
+          },
+          {
+            "lat": -52.812723,
+            "lng": -70.460815,
+            "t": 0.33716255025847214,
+            "label": "1st trip into the Strait of Magellan"
+          },
+          {
+            "lat": -51.55700899999999,
+            "lng": -57.99408,
+            "t": 0.2469844916714532,
+            "label": "Berkeley Sound, East Falkland Island"
+          },
+          {
+            "lat": -52.345093,
+            "lng": -59.354668,
+            "t": 0.25617461229178634,
+            "label": "Rincon del Toro, Falkland Islands"
+          },
+          {
+            "lat": -51.919709,
+            "lng": -58.44589200000001,
+            "t": 0.23032739804709937,
+            "label": "Choiseul Sound camp"
+          },
+          {
+            "lat": -54.603892,
+            "lng": -64.138184,
+            "t": 0.2044801838024124,
+            "label": "Cape San Diego, Staten Island"
+          },
+          {
+            "lat": -54.80028900000001,
+            "lng": -65.255699,
+            "t": 0.20505456634118321,
+            "label": "Bay of Good Success"
+          },
+          {
+            "lat": -54.787918,
+            "lng": -65.258789,
+            "t": 0.20620333141872488,
+            "label": "Sir J. Banks Hill"
+          },
+          {
+            "lat": -56.09962,
+            "lng": -67.120972,
+            "t": 0.2067777139574957,
+            "label": "Failed attempt around Cape Horn"
+          },
+          {
+            "lat": -55.235288,
+            "lng": -67.548065,
+            "t": 0.20792647903503733,
+            "label": "Wigwam Cove"
+          },
+          {
+            "lat": -55.222757,
+            "lng": -67.250061,
+            "t": 0.20907524411257897,
+            "label": "Climbed Kater's Peak"
+          },
+          {
+            "lat": -55.563592,
+            "lng": -67.405243,
+            "t": 0.2148190695002872,
+            "label": "Wollaston Island"
+          },
+          {
+            "lat": -55.36350300000001,
+            "lng": -67.08252,
+            "t": 0.22113727742676623,
+            "label": "Goeree Roads"
+          },
+          {
+            "lat": -55.037467,
+            "lng": -66.796875,
+            "t": 0.22917863296955773,
+            "label": "Fork in the Beagle Channel"
+          },
+          {
+            "lat": -55.021725,
+            "lng": -68.17359900000001,
+            "t": 0.24928202182653647,
+            "label": "Woollya Cove"
+          },
+          {
+            "lat": -55.09251500000001,
+            "lng": -69.971924,
+            "t": 0.25962090752441125,
+            "label": "Darwin loops around island and back to Woolley Cove"
+          },
+          {
+            "lat": -54.86238199999999,
+            "lng": -69.804382,
+            "t": 0.27053417576105687,
+            "label": "Darwin explorers further west down Beagle Channel"
+          },
+          {
+            "lat": -55.191412,
+            "lng": -68.197632,
+            "t": 0.28087306145893165,
+            "label": "Ponsonby Sound back to the ship at Goeree Roads"
+          },
+          {
+            "lat": -53.00156199999999,
+            "lng": -70.510254,
+            "t": 0.2917863296955773,
+            "label": "2nd trip into the Strait of Magellan"
+          },
+          {
+            "lat": -53.61399700000001,
+            "lng": -70.923271,
+            "t": 0.2998276852383688,
+            "label": "Port Famine in the Strait of Magellan"
+          },
+          {
+            "lat": -53.317749,
+            "lng": -73.10302700000001,
+            "t": 0.30499712808730617,
+            "label": "Successful attempt through Strait of Magellan"
+          },
+          {
+            "lat": -33.02133,
+            "lng": -71.60202,
+            "t": 0.5393452039058013,
+            "label": "Valparaiso, Chile"
+          },
+          {
+            "lat": -33.123751,
+            "lng": -71.250458,
+            "t": 0.5353245261344055,
+            "label": "La Compana or Bell Mountain, Chile"
+          },
+          {
+            "lat": -32.884489,
+            "lng": -71.25217400000001,
+            "t": 0.5542791499138426,
+            "label": "Quillotta, Chile"
+          },
+          {
+            "lat": -32.845846,
+            "lng": -71.095276,
+            "t": 0.5565766800689259,
+            "label": "Jajuel, Chile?"
+          },
+          {
+            "lat": -33.431441,
+            "lng": -70.684662,
+            "t": 0.55944859276278,
+            "label": "Santiago, Chile"
+          },
+          {
+            "lat": -34.168636,
+            "lng": -70.743713,
+            "t": 0.5473865594485927,
+            "label": "Rancagua, Chile"
+          },
+          {
+            "lat": -34.282184,
+            "lng": -70.711956,
+            "t": 0.5542791499138426,
+            "label": "Mineral Springs at Cauquences, Chile"
+          },
+          {
+            "lat": -34.346838,
+            "lng": -70.364685,
+            "t": 0.5617461229178633,
+            "label": "Mountain climb near Cauquences"
+          },
+          {
+            "lat": -34.58743200000001,
+            "lng": -70.987473,
+            "t": 0.569213095921884,
+            "label": "San Fernando, Chile"
+          },
+          {
+            "lat": -34.207259,
+            "lng": -71.592407,
+            "t": 0.5743825387708213,
+            "label": "Area without trees"
+          },
+          {
+            "lat": -33.958027,
+            "lng": -71.829128,
+            "t": 0.5881677197013211,
+            "label": "Nevedad, Chile"
+          },
+          {
+            "lat": -42.000325,
+            "lng": -73.207397,
+            "t": 0.6025272831705916,
+            "label": "Island of Chiloe, Chile"
+          },
+          {
+            "lat": -41.82909,
+            "lng": -73.525486,
+            "t": 0.6053991958644457,
+            "label": "Chacao"
+          },
+          {
+            "lat": -42.269179,
+            "lng": -73.125,
+            "t": 0.6082711085582998,
+            "label": "Chauques Island, Chile"
+          },
+          {
+            "lat": -42.475642,
+            "lng": -73.473816,
+            "t": 0.6111430212521539,
+            "label": "Quinchao, Chile"
+          },
+          {
+            "lat": -42.489315,
+            "lng": -73.763924,
+            "t": 0.614014933946008,
+            "label": "Castro, Chile"
+          },
+          {
+            "lat": -42.684013,
+            "lng": -73.54917500000002,
+            "t": 0.6145893164847789,
+            "label": "Lemuy Island, Chile"
+          },
+          {
+            "lat": -42.98349100000001,
+            "lng": -73.470211,
+            "t": 0.6157380815623205,
+            "label": "Island of Tanqui, Chile"
+          },
+          {
+            "lat": -43.171383,
+            "lng": -73.532524,
+            "t": 0.617461229178633,
+            "label": "Island of Caylen, Chile"
+          },
+          {
+            "lat": -43.386836,
+            "lng": -73.698349,
+            "t": 0.6186099942561746,
+            "label": "Island of San Padro, Chile"
+          },
+          {
+            "lat": -43.366374,
+            "lng": -73.705387,
+            "t": 0.6197587593337163,
+            "label": "San Pedro Mountain Climb"
+          },
+          {
+            "lat": -46.935261,
+            "lng": -74.940491,
+            "t": 0.6214819069500287,
+            "label": "Chronos Archipelago, Chile"
+          },
+          {
+            "lat": -46.76150200000001,
+            "lng": -75.289307,
+            "t": 0.6312464101091326,
+            "label": "Tres Montes, Chile"
+          },
+          {
+            "lat": -46.765265,
+            "lng": -75.432129,
+            "t": 0.6278001148765078,
+            "label": "Mountain Climb"
+          },
+          {
+            "lat": -47.15190200000001,
+            "lng": -74.027939,
+            "t": 0.6243538196438828,
+            "label": "Deep Creek"
+          },
+          {
+            "lat": -47.207908,
+            "lng": -73.928375,
+            "t": 0.6209075244112578,
+            "label": "Found water and pigs"
+          },
+          {
+            "lat": -43.953282,
+            "lng": -74.256592,
+            "t": 0.6180356117174038,
+            "label": "Low's Harbor, Chile?"
+          },
+          {
+            "lat": -43.889975,
+            "lng": -74.020386,
+            "t": 0.6203331418724871,
+            "label": "Exploring"
+          },
+          {
+            "lat": -42.05745,
+            "lng": -72.993164,
+            "t": 0.6226306720275704,
+            "label": "Return to Bay of San Carlos, Chile"
+          },
+          {
+            "lat": -41.104191,
+            "lng": -72.497406,
+            "t": 0.6249282021826537,
+            "label": "Osorno Volcano, Chile"
+          },
+          {
+            "lat": -42.632948,
+            "lng": -74.110336,
+            "t": 0.6306720275703619,
+            "label": "Cuaco, Chile"
+          },
+          {
+            "lat": -42.538283,
+            "lng": -74.15411,
+            "t": 0.6369902354968409,
+            "label": "Punta Huantamo, Chile"
+          },
+          {
+            "lat": -38.738821,
+            "lng": -72.59868600000001,
+            "t": 0.6427340608845491,
+            "label": "Mission Cudico, Chile?"
+          },
+          {
+            "lat": -39.825413,
+            "lng": -73.257866,
+            "t": 0.6490522688110282,
+            "label": "Valdivia, Chile"
+          },
+          {
+            "lat": -39.866534,
+            "lng": -73.385925,
+            "t": 0.6547960941987364,
+            "label": "Neibla, Chile"
+          },
+          {
+            "lat": -39.819612,
+            "lng": -73.24585,
+            "t": 0.6611143021252154,
+            "label": "Earthquake"
+          },
+          {
+            "lat": -42.873951,
+            "lng": -72.600403,
+            "t": 0.6634118322802987,
+            "label": "1835 Eruption of Mount Corcovado"
+          },
+          {
+            "lat": -42.835696,
+            "lng": -72.454834,
+            "t": 0.6657093624353819,
+            "label": "1835 Volcano Eruption of Mount Michinmahuida"
+          },
+          {
+            "lat": -36.812583,
+            "lng": -73.097792,
+            "t": 0.6680068925904652,
+            "label": "Concepcion, Chile"
+          },
+          {
+            "lat": -36.808598,
+            "lng": -73.151951,
+            "t": 0.6771970132107984,
+            "label": "Quiriquina Island, Chile"
+          },
+          {
+            "lat": -36.720723,
+            "lng": -73.093414,
+            "t": 0.6777713957495692,
+            "label": "Talcahuano, Chile"
+          },
+          {
+            "lat": -36.785642,
+            "lng": -73.085175,
+            "t": 0.6783457782883401,
+            "label": "Rode back to Concepcion"
+          },
+          {
+            "lat": -33.641491,
+            "lng": -70.357132,
+            "t": 0.6789201608271108,
+            "label": "Maypu"
+          },
+          {
+            "lat": -34.228835,
+            "lng": -69.764557,
+            "t": 0.6794945433658817,
+            "label": "Climbed the Andes Mountains"
+          },
+          {
+            "lat": -34.242459,
+            "lng": -69.187775,
+            "t": 0.6800689259046525,
+            "label": "Argentina"
+          },
+          {
+            "lat": -33.234093,
+            "lng": -68.889771,
+            "t": 0.6806433084434234,
+            "label": "Locus attack"
+          },
+          {
+            "lat": -32.88939,
+            "lng": -68.862305,
+            "t": 0.6812176909821941,
+            "label": "Mendoza, Argentina"
+          },
+          {
+            "lat": -32.821037,
+            "lng": -69.928322,
+            "t": 0.6858127512923607,
+            "label": "Puente del Incas, Chile"
+          },
+          {
+            "lat": -29.97278100000001,
+            "lng": -71.328049,
+            "t": 0.6858127512923607,
+            "label": "Coquimbo, Chile"
+          },
+          {
+            "lat": -29.727117,
+            "lng": -71.232262,
+            "t": 0.6858127512923607,
+            "label": "Mine"
+          },
+          {
+            "lat": -29.03666,
+            "lng": -71.433105,
+            "t": 0.6858127512923607,
+            "label": "Chaneral, Chile"
+          },
+          {
+            "lat": -28.506712,
+            "lng": -71.098366,
+            "t": 0.704192992533027,
+            "label": "Freyina, Chile"
+          },
+          {
+            "lat": -28.597786,
+            "lng": -70.78903200000002,
+            "t": 0.723147616312464,
+            "label": "Bellenaugh, Chile"
+          },
+          {
+            "lat": -27.386096,
+            "lng": -70.314217,
+            "t": 0.7277426766226307,
+            "label": "Copiapo, Chile (another earthquake)"
+          },
+          {
+            "lat": -27.700552,
+            "lng": -69.56955,
+            "t": 0.7329121194715681,
+            "label": "Devastating windstorm"
+          },
+          {
+            "lat": -27.332735,
+            "lng": -70.97168,
+            "t": 0.7375071797817346,
+            "label": "Beagle arrived July 2,1835"
+          },
+          {
+            "lat": -20.202924,
+            "lng": -70.162811,
+            "t": 0.742676622630672,
+            "label": "Iquique, Chile"
+          },
+          {
+            "lat": -20.228536,
+            "lng": -70.024023,
+            "t": 0.7443997702469844,
+            "label": "Guantajaya Mines"
+          },
+          {
+            "lat": -12.115865,
+            "lng": -77.145996,
+            "t": 0.7466973004020678,
+            "label": "Bay of Callo (Lima), Peru"
+          },
+          {
+            "lat": -0.897666,
+            "lng": -89.615049,
+            "t": 0.7455485353245261,
+            "label": "Chatman Island, Galapago's Archipelago"
+          },
+          {
+            "lat": -1.230374,
+            "lng": -90.450439,
+            "t": 0.7489948305571511,
+            "label": "Charles Island, Galapago's Archipelago"
+          },
+          {
+            "lat": -0.387265,
+            "lng": -91.334839,
+            "t": 0.7880528431935669,
+            "label": "Albemarle and Marborough Islands, Galapago's Archipelago"
+          },
+          {
+            "lat": -0.444942,
+            "lng": -90.51086399999998,
+            "t": 0.7932222860425043,
+            "label": "James and Indeflatigable Islands, Galapago's Archipelago"
+          },
+          {
+            "lat": -17.49829,
+            "lng": -149.495301,
+            "t": 0.8150488225157955,
+            "label": "Tahiti"
+          },
+          {
+            "lat": -17.598048,
+            "lng": -149.481869,
+            "t": 0.8161975875933372,
+            "label": "Valley of Tiaauru, Tahiti?"
+          },
+          {
+            "lat": -17.536923,
+            "lng": -149.570274,
+            "t": 0.8179207352096496,
+            "label": "Papawa, Tahiti"
+          },
+          {
+            "lat": -35.269448,
+            "lng": 174.099655,
+            "t": 0.8357265939115451,
+            "label": "Bay of Islands, New Zealand"
+          },
+          {
+            "lat": -35.283042,
+            "lng": 174.089355,
+            "t": 0.8420448018380241,
+            "label": "Pahia, New Zealand"
+          },
+          {
+            "lat": -33.863004,
+            "lng": 151.241226,
+            "t": 0.8483630097645032,
+            "label": "Port Jackson, Sydney, Australia"
+          },
+          {
+            "lat": -33.762024,
+            "lng": 150.659637,
+            "t": 0.8512349224583573,
+            "label": "Emu Ferry, Australia"
+          },
+          {
+            "lat": -33.63606,
+            "lng": 150.285072,
+            "t": 0.8512349224583573,
+            "label": "Blackheath, Australia"
+          },
+          {
+            "lat": -33.62836,
+            "lng": 150.311229,
+            "t": 0.851809304997128,
+            "label": "Govett's Leap, Australia"
+          },
+          {
+            "lat": -33.589741,
+            "lng": 150.253487,
+            "t": 0.851809304997128,
+            "label": "Mount Victoria, Australia"
+          },
+          {
+            "lat": -33.511987,
+            "lng": 150.150962,
+            "t": 0.8523836875358989,
+            "label": "Hassan's Walls, Australia"
+          },
+          {
+            "lat": -33.416828,
+            "lng": 149.578514,
+            "t": 0.8529580700746697,
+            "label": "Bathurst, Australia"
+          },
+          {
+            "lat": -42.900113,
+            "lng": 147.355499,
+            "t": 0.8529580700746697,
+            "label": "Hobart Town in Van Diemen's Land, Australia"
+          },
+          {
+            "lat": -35.064849,
+            "lng": 117.989044,
+            "t": 0.8632969557725445,
+            "label": "King George's Sound"
+          },
+          {
+            "lat": -12.114523,
+            "lng": 96.882248,
+            "t": 0.8943136128661688,
+            "label": "Keeling (Cocoa) Island"
+          },
+          {
+            "lat": -12.062362,
+            "lng": 96.884565,
+            "t": 0.9023549684089603,
+            "label": "Direction Island"
+          },
+          {
+            "lat": -20.210656,
+            "lng": 57.288208,
+            "t": 0.9103963239517519,
+            "label": "Port Louis, Mauritius"
+          },
+          {
+            "lat": -33.894357,
+            "lng": 18.439865,
+            "t": 0.9161401493394601,
+            "label": "Cape Town, South Africa"
+          },
+          {
+            "lat": -15.915112,
+            "lng": -5.736237,
+            "t": 0.9161401493394601,
+            "label": "St. Helena Island"
+          },
+          {
+            "lat": -7.871544,
+            "lng": -14.381104,
+            "t": 0.9569213095921884,
+            "label": "Ascension Island"
+          },
+          {
+            "lat": -13.325485,
+            "lng": -35.507812,
+            "t": 0.9712808730614589,
+            "label": "Return trip to Bahia, Brazil"
+          },
+          {
+            "lat": 38.091337,
+            "lng": -25.334473,
+            "t": 0.9856404365307294,
+            "label": "Azores"
+          },
+          {
+            "lat": 50.11793599999999,
+            "lng": -5.041351,
+            "t": 1,
+            "label": "Falmouth"
+          }
+        ]
+      }
+    ]
+  }
+]
