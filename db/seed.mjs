@@ -28,7 +28,7 @@ const PSQL = process.env.PG_BIN_DIR ? path.join(process.env.PG_BIN_DIR, 'psql') 
 // since parseEntriesTsv doesn't produce those fields (see db/schema.sql's
 // citation_url/citation_label comment for the fallback behavior this
 // relies on).
-const EXTRA_ENTRY_FILES = ['cliopatria-boundaries.json', 'beagle-voyage.json'];
+const EXTRA_ENTRY_FILES = ['cliopatria-boundaries.json', 'beagle-voyage.json', 'great-wall.json'];
 
 const VALID_CATEGORIES = new Set([
   'person', 'event', 'place', 'artifact', 'pol_mil_organization',

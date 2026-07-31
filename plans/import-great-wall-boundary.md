@@ -1,4 +1,4 @@
-# Import the Great Wall of China from OpenStreetMap (TODO item 14)
+# Import the Great Wall of China from OpenStreetMap (TODO item 14) — COMPLETED
 
 ## Summary
 
@@ -9,9 +9,7 @@ in `PARKINGLOT.md` (Cliopatria's boundaries leg is done — TODO item 12;
 the Beagle voyage's journey leg is planned but not yet built — TODO item
 13; this is the third).
 
-**Not implemented yet** — this plan captures the design and a verified
-data survey so implementation can start directly next time, per the
-user's request to plan without building.
+Implemented — see the Result section at the end of this file.
 
 ## Data source, verified live
 
@@ -138,3 +136,79 @@ already implemented, multi-location-per-entry already supported).
    northern China) and correct `citationUrl`/`citationLabel`.
 4. Visual check in a browser once one is available (same caveat as TODO
    items 12/13).
+
+## Result
+
+Implemented as designed, with one major deviation from the plan's fetch
+strategy and an empirical length-cap decision the plan deliberately left
+open.
+
+- **Fetch strategy — plain OSM `/full.json`, not Overpass at all.** The
+  plan's own investigation found Overpass timing out on a recursive
+  full-geometry fetch and left batching/pagination/mirror-switching as
+  open implementation choices. Re-tested live: the plain OSM API's
+  `GET /api/0.6/relation/{id}/full.json` endpoint returned the entire
+  main relation (127,858 elements, 30MB) in **6.7 seconds** — no Overpass
+  involvement needed. Its one limitation is that it resolves only one
+  level of sub-relations per call, so relation 318110's 7 nested
+  sub-relations (and one of *those*, "金界壕"/Jin border trench, itself
+  nests 9 more) needed their own recursive `/full.json` calls —
+  `db/fetch-great-wall.mjs` does this generically (visit any relation,
+  queue any newly-discovered sub-relation, dedupe by id) with 1.5s
+  pacing and exponential backoff on 429/504, since a first unpaced test
+  run did trip OSM's rate limiter. Total: 17 relations, 8,245 distinct
+  ways, 144,382 nodes, fetched in ~45s end to end.
+- **Scope note**: the relation tree includes "金界壕" (the Jin dynasty
+  border trench/rampart system, sometimes called the "Wall of Genghis
+  Khan") as a nested sub-relation — a related but historically distinct
+  earthwork from the traditional Ming-era Great Wall. Left in rather
+  than filtered out: OSM's own community-maintained relation structure
+  already made the call that this belongs under the "长城"/Great Wall
+  super-relation, and second-guessing that classification wasn't judged
+  worth the complexity for a hobby-project import.
+- **Line merging**: coordinate-endpoint merging (per plan) reduced 8,245
+  ways to 7,275 contiguous polylines — a much smaller reduction than
+  might be expected, confirming the plan's prediction that this is a
+  genuinely fragmented network rather than a merge-away artifact: a
+  direct node-id-sharing check found only 1,111 real junctions across
+  the entire dataset. The length distribution is dominated by short
+  fragments: 5,622 of the 7,275 merged polylines (77%) are under 1km.
+- **Cap decision: N=75, via a 10km length floor, not a length-percentage
+  target.** The plan's own illustrative example ("top 50 sections cover
+  80% of total mapped length") turned out not to hold empirically —
+  length coverage against the *full* merged network tops out far lower
+  than that even at generous N (top 300 of 7,275 covers only 39.4% of
+  6,995km total). That metric is misleading here because it's dominated
+  by thousands of sub-1km fragments that wouldn't be individually
+  visible at world-map zoom regardless of whether they're kept. Reframed
+  the question as "how many sections are independently long enough to
+  read as a real, recognizable stretch of wall" instead of "what % of
+  every mapped fragment is covered": a 10km length floor happens to
+  select exactly 75 sections (1,289km, 18.4% of total merged length) —
+  a count in the same ballpark as this app's other multi-location
+  imports (Cliopatria: 12 entries × 1 location each) while every kept
+  section is a substantial, real contiguous stretch rather than a
+  digitization stub.
+- **Dates**: cross-checked against Wikipedia rather than trusted from
+  memory — confirmed earliest walls date to the 8th century BCE (Spring
+  and Autumn period, joined under the Qin dynasty), with the
+  best-preserved standing sections from the Ming dynasty (1368-1644 CE).
+  Used `-800`..`1644` (refined from the plan's `-700` ballpark) with
+  `uncertaintyYears: 100` to signal these are wide historical anchors,
+  not a precise construction event.
+- **`LICENSES.md`**: added plain OpenStreetMap (ODbL 1.0) as a new row,
+  explicitly distinguished from the pre-existing OpenHistoricalMap (CC0)
+  "researched" row per the plan's correction note — confirmed live via
+  the fetched relation's own licensing (OSM's standard ODbL terms) that
+  these are two separately-licensed projects, not different labels for
+  the same data.
+- **Verification performed**: fetch script run directly end-to-end (75
+  sections, plausible northern-China/Inner-Mongolia coordinate range
+  37.8-47.0°N, 93.5-121.6°E matching the wall's real geographic span);
+  `tsc --noEmit` clean; `db/init-db.sh` run end-to-end (170 entries, 131
+  locations seeded, up from 169/56); direct Postgres query and a direct
+  `/api/entries/by-ids` call against the running `local-concept-server`
+  both confirmed the entry with 75 ordered `path` locations, correct
+  `citationUrl`/`citationLabel`, and real query-path reachability.
+  **Not visually verified in a browser** — no browser tool available
+  this session, same caveat as TODO items 12/13.
