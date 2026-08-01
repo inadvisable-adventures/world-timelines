@@ -345,7 +345,17 @@ need one).
 ### `<app-root>` Web Component
 
 - Owns the WebWorker instance and all cross-component state.
-- Layout: left column (map, ~75% width) + right sidebar (picker + editor) + full-width timeline below.
+- Layout: a CSS Grid (not nested flexbox) with named areas for map,
+  sidebar (picker + editor), and timeline, plus two thin drag-resizer
+  tracks. Default arrangement: map + sidebar side by side on top, timeline
+  full-width below (sidebar spans only the top row's height). A toggle
+  button swaps to an alternate `grid-template-areas` where the sidebar
+  spans the full viewport height instead and the timeline narrows to the
+  map's width — no DOM reparenting, so `world-map`/`world-timeline`'s own
+  `ResizeObserver`-driven canvas sizing is unaffected either way. The two
+  resizer tracks drag two CSS custom properties (`--sidebar-w`,
+  `--timeline-h`) that apply under either arrangement. See
+  `plans/layout-resize-controls.md` (TODO #17).
 - Handles all cross-component sync:
   - `time-range-changed` → sends updated `timeRange` to worker, triggers new query.
   - `dsl-changed` → parses category filter from DSL, updates picker; sends query to worker.

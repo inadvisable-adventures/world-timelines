@@ -24,6 +24,9 @@ export class AppRootElement extends HTMLElement {
   private unpinAllBtn!: HTMLButtonElement;
   private detailEl!: EntryDetailElement;
   private settingsEl!: SettingsMenuElement;
+  private layoutToggleBtn!: HTMLButtonElement;
+  private colResizer!: HTMLElement;
+  private rowResizer!: HTMLElement;
 
   private currentTimeRange: [number, number] = [-3000, 2100];
   private timeSelection: [number, number] | null = null;
@@ -56,9 +59,15 @@ export class AppRootElement extends HTMLElement {
     this.unpinAllBtn = shadow.getElementById('unpin-all-btn') as HTMLButtonElement;
     this.detailEl = shadow.getElementById('entry-detail') as EntryDetailElement;
     this.settingsEl = shadow.querySelector('settings-menu') as SettingsMenuElement;
+    this.layoutToggleBtn = shadow.getElementById('layout-toggle-btn') as HTMLButtonElement;
+    this.colResizer = shadow.getElementById('col-resizer')!;
+    this.rowResizer = shadow.getElementById('row-resizer')!;
 
     this.pinAllBtn.addEventListener('click', () => this.pinAllResults());
     this.unpinAllBtn.addEventListener('click', () => this.unpinAll());
+    this.layoutToggleBtn.addEventListener('click', () => this.classList.toggle('sidebar-full-height'));
+    this.colResizer.addEventListener('mousedown', (e) => this.startColResize(e));
+    this.rowResizer.addEventListener('mousedown', (e) => this.startRowResize(e));
 
     shadow.addEventListener('time-range-changed', this.onTimeRangeChanged.bind(this) as EventListener);
     shadow.addEventListener('time-filter-changed', this.onTimeFilterChanged.bind(this) as EventListener);
@@ -346,6 +355,46 @@ export class AppRootElement extends HTMLElement {
     const lane = active?.lanes.find(l => l.slug === id);
     this.mapEl.setLaneOutline(lane ? lane.geometry : null);
   }
+
+  // ── layout resize (TODO #17) ────────────────────────────────────────────
+  // Both drag handles just update a CSS custom property on the host —
+  // grid-template-areas (which arrangement is active) is untouched by
+  // either, so dragging works identically under the default and
+  // sidebar-full-height arrangements. See plans/layout-resize-controls.md.
+
+  private startColResize(downEvent: MouseEvent): void {
+    downEvent.preventDefault();
+    this.colResizer.classList.add('dragging');
+    const onMove = (e: MouseEvent) => {
+      const rect = this.getBoundingClientRect();
+      const width = clamp(rect.right - e.clientX, 180, rect.width * 0.6);
+      this.style.setProperty('--sidebar-w', `${width}px`);
+    };
+    const onUp = () => {
+      this.colResizer.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  private startRowResize(downEvent: MouseEvent): void {
+    downEvent.preventDefault();
+    this.rowResizer.classList.add('dragging');
+    const onMove = (e: MouseEvent) => {
+      const rect = this.getBoundingClientRect();
+      const height = clamp(rect.bottom - e.clientY, 120, rect.height * 0.7);
+      this.style.setProperty('--timeline-h', `${height}px`);
+    };
+    const onUp = () => {
+      this.rowResizer.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
 }
 
 // An era is an entry with category='historical_period' and a tag ending in
@@ -390,6 +439,10 @@ function setCategoryLine(dsl: string, newLine: string): string {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n));
 }
 
 customElements.define('app-root', AppRootElement);

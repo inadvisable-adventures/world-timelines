@@ -1,4 +1,4 @@
-# Layout resize controls (TODO item 17)
+# Layout resize controls (TODO item 17) — COMPLETED
 
 ## Summary
 
@@ -122,3 +122,38 @@ component — confirmed via the ResizeObserver investigation above.
 5. Visual check in a browser once one is available — this is a pure
    layout/CSS feature, about as poorly suited to a Node-side check as
    any change in this project gets. Flag explicitly if skipped.
+
+## Result
+
+Implemented as designed, with one correction to a verification step's own
+wording.
+
+- **Not literally "byte-identical" at defaults** (verification step 2's
+  phrasing): adding real drag-resizer tracks necessarily costs a small
+  amount of space that didn't exist before — 6px is now a visible,
+  grabbable strip rather than sitting inside the map's/sidebar's border.
+  The map is ~6px narrower and the top area ~6px shorter than the old
+  flex layout at default proportions. This is an expected, unavoidable
+  consequence of the resizer needing to occupy real, clickable space, not
+  a defect — noted here because the plan's own verification wording
+  overclaimed, and that's worth correcting rather than quietly ignoring.
+- **`grid-template-areas` validity**: hand-verified both variants
+  (default and `.sidebar-full-height`) assign every named area to a
+  single contiguous rectangular region, which CSS Grid requires — `map`/
+  `colgap`/`sidebar`/`rowgap`/`timeline` all check out in both variants.
+  No `.main-row` references were left behind anywhere in CSS or TS after
+  removing the old flex wrapper (confirmed via a repo-wide grep).
+- **`world-map.ts`/`timeline.ts` untouched**, confirmed by the
+  investigation (their `ResizeObserver`s watch their own element's box
+  regardless of what layout engine changed it) — no changes needed or
+  made to either file, matching the plan's Affected Files list exactly.
+- **Verification performed**: `tsc --noEmit` clean, full build, confirmed
+  the rebuilt static files (`index.html`, `app-root.js`) serve the new
+  grid markup/handlers via the running `local-concept-server`. The grid
+  CSS itself (area-name rectangularity, selector correctness) was
+  verified by careful manual reasoning rather than a render, since no
+  browser tool is available this session (confirmed via `ToolSearch`).
+  **Not visually verified in a browser** — this is about as poorly
+  suited to a Node-side check as any change in this project gets, exactly
+  as the plan anticipated; flagged explicitly rather than treated as a
+  routine formality.

@@ -18,11 +18,42 @@
 
   <template id="app-root-template">
     <style>
-      :host { display: flex; flex-direction: column; width: 100%; height: 100vh; position: relative; }
-      .main-row { display: flex; flex: 1 1 0; min-height: 0; }
-      .map-col { flex: 1 1 0; min-width: 0; position: relative; }
-      .sidebar { flex: 0 0 260px; display: flex; flex-direction: column; border-left: 1px solid #1e2030; background: #0d0f18; }
-      .timeline-row { flex: 0 0 380px; min-height: 0; overflow: hidden; border-top: 1px solid #1e2030; position: relative; }
+      /* Layout: a 3x3 CSS Grid rather than nested flexbox, so the
+         sidebar-full-height/timeline-full-width arrangement toggle (TODO
+         #17) can swap which grid cells map/sidebar/timeline occupy via
+         grid-template-areas alone -- no DOM reparenting, so the web
+         components mounted in each cell (world-map, world-timeline) never
+         move and their own ResizeObserver-driven canvas sizing is
+         unaffected either way. colgap/rowgap are drag-resize handles (part
+         b); --sidebar-w/--timeline-h are updated directly by app-root.ts
+         during a drag and apply identically under either arrangement. See
+         plans/layout-resize-controls.md.
+      */
+      :host {
+        display: grid; width: 100%; height: 100vh; position: relative;
+        grid-template-columns: 1fr 6px var(--sidebar-w, 260px);
+        grid-template-rows: 1fr 6px var(--timeline-h, 380px);
+        grid-template-areas:
+          "map      colgap sidebar"
+          "rowgap   rowgap rowgap"
+          "timeline timeline timeline";
+      }
+      :host(.sidebar-full-height) {
+        grid-template-areas:
+          "map      colgap sidebar"
+          "rowgap   colgap sidebar"
+          "timeline colgap sidebar";
+      }
+      .map-col { grid-area: map; min-width: 0; min-height: 0; position: relative; }
+      .sidebar {
+        grid-area: sidebar; display: flex; flex-direction: column; min-width: 0; min-height: 0;
+        border-left: 1px solid #1e2030; background: #0d0f18; overflow: hidden;
+      }
+      .timeline-row { grid-area: timeline; min-width: 0; min-height: 0; overflow: hidden; border-top: 1px solid #1e2030; position: relative; }
+      .col-resizer { grid-area: colgap; cursor: col-resize; background: #161925; }
+      .col-resizer:hover, .col-resizer.dragging { background: #3a4060; }
+      .row-resizer { grid-area: rowgap; cursor: row-resize; background: #161925; }
+      .row-resizer:hover, .row-resizer.dragging { background: #3a4060; }
       world-map { width: 100%; height: 100%; display: block; }
       world-timeline { width: 100%; height: 100%; display: block; }
       .top-links {
@@ -49,34 +80,43 @@
       #unpin-all-btn.hidden { display: none; }
       entry-detail { flex: 0 0 auto; }
       settings-menu { position: absolute; top: 8px; right: 8px; z-index: 50; }
+      #layout-toggle-btn {
+        position: absolute; top: 8px; right: 46px; z-index: 50;
+        width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+        background: rgba(20,22,30,0.9); border: 1px solid #2a2e42; border-radius: 4px;
+        color: #9fb4e0; cursor: pointer; font-size: 14px; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #layout-toggle-btn:hover { border-color: #3a4060; color: #cfe0ff; background: rgba(126,184,247,0.1); }
       .loading {
         position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
         background: rgba(15,17,23,0.85); font-size: 1rem; color: #888; pointer-events: none; z-index: 10;
       }
       .loading.hidden { display: none; }
     </style>
-    <div class="main-row">
-      <div class="map-col">
-        <world-map></world-map>
+    <div class="map-col">
+      <world-map></world-map>
+    </div>
+    <div class="col-resizer" id="col-resizer" title="Drag to resize"></div>
+    <div class="row-resizer" id="row-resizer" title="Drag to resize"></div>
+    <div class="sidebar">
+      <div class="top-links">PROTOTYPE [ <a href="https://github.com/inadvisable-adventures/world-timelines" target="_blank" rel="noopener noreferrer">Code</a> | <a href="./ACKNOWLEDGEMENTS.html" target="_blank" rel="noopener noreferrer">Acknowledgements</a> ]</div>
+      <category-picker></category-picker>
+      <laneset-picker></laneset-picker>
+      <query-editor></query-editor>
+      <div id="results-bar">
+        <span id="results-count"></span><span id="pinned-count"></span>
+        <span class="spacer"></span>
+        <button id="pin-all-btn" title="Pin every entry in the current results">Pin all</button>
+        <button id="unpin-all-btn" class="hidden" title="Unpin everything">Unpin all</button>
       </div>
-      <div class="sidebar">
-        <div class="top-links">PROTOTYPE [ <a href="https://github.com/inadvisable-adventures/world-timelines" target="_blank" rel="noopener noreferrer">Code</a> | <a href="./ACKNOWLEDGEMENTS.html" target="_blank" rel="noopener noreferrer">Acknowledgements</a> ]</div>
-        <category-picker></category-picker>
-        <laneset-picker></laneset-picker>
-        <query-editor></query-editor>
-        <div id="results-bar">
-          <span id="results-count"></span><span id="pinned-count"></span>
-          <span class="spacer"></span>
-          <button id="pin-all-btn" title="Pin every entry in the current results">Pin all</button>
-          <button id="unpin-all-btn" class="hidden" title="Unpin everything">Unpin all</button>
-        </div>
-        <entry-detail id="entry-detail"></entry-detail>
-      </div>
+      <entry-detail id="entry-detail"></entry-detail>
     </div>
     <div class="timeline-row">
       <world-timeline></world-timeline>
     </div>
     <settings-menu></settings-menu>
+    <button id="layout-toggle-btn" title="Switch between full-width timeline and full-height sidebar">⬓</button>
     <div class="loading" id="loading-overlay">Loading data…</div>
   </template>
 
