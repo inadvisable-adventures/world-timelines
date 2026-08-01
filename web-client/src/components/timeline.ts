@@ -83,6 +83,7 @@ export class TimelineElement extends HTMLElement {
   private tooltipYears!: HTMLElement;
   private selClearBtn!: HTMLElement;
   private fitBtn!: HTMLElement;
+  private expandBtn!: HTMLButtonElement;
 
   private visibleStart = -3000;
   private visibleEnd = 2100;
@@ -127,6 +128,12 @@ export class TimelineElement extends HTMLElement {
     this.selClearBtn = shadow.getElementById('time-sel-clear')!;
     this.fitBtn = shadow.getElementById('fit-btn')!;
     this.fitBtn.addEventListener('click', () => this.onFit());
+    this.expandBtn = shadow.getElementById('expand-btn') as HTMLButtonElement;
+    this.expandBtn.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('expand-toggled', {
+        detail: { panel: 'timeline' }, bubbles: true, composed: true,
+      }));
+    });
 
     this.resizeObserver = new ResizeObserver(() => this.syncSize());
     this.resizeObserver.observe(this);
@@ -172,6 +179,9 @@ export class TimelineElement extends HTMLElement {
 
   setSelection(start: number, end: number): void { this.selectionStart = start; this.selectionEnd = end; this.draw(); }
   clearSelection(): void { this.selectionStart = null; this.selectionEnd = null; this.draw(); }
+  // Reflects expand/restore state driven by app-root (TODO #18) — the
+  // panel's own resize (via ResizeObserver) handles everything else.
+  setExpanded(isExpanded: boolean): void { this.expandBtn.classList.toggle('expanded', isExpanded); }
   getVisibleRange(): [number, number] { return [Math.floor(this.visibleStart), Math.ceil(this.visibleEnd)]; }
 
   // ── geometry helpers ──────────────────────────────────────────────────────

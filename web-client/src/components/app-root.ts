@@ -27,6 +27,8 @@ export class AppRootElement extends HTMLElement {
   private layoutToggleBtn!: HTMLButtonElement;
   private colResizer!: HTMLElement;
   private rowResizer!: HTMLElement;
+  private sidebarExpandBtn!: HTMLButtonElement;
+  private restoreBtn!: HTMLButtonElement;
 
   private currentTimeRange: [number, number] = [-3000, 2100];
   private timeSelection: [number, number] | null = null;
@@ -38,6 +40,8 @@ export class AppRootElement extends HTMLElement {
   private lastResults: HistoricalEvent[] = [];
   private selectedId: string | null = null;
   private pinnedIds: Set<string> = new Set();
+  // Which panel (if any) currently covers the full viewport (TODO #18).
+  private expandedPanel: 'map' | 'timeline' | 'sidebar' | 'detail' | null = null;
   private lanesets: Laneset[] = [];
   private activeLanesetId = 'continents'; // default; 'none' hides lanes
   private dataSource: DataSource = 'postgres'; // default preserves prior behavior
@@ -62,12 +66,18 @@ export class AppRootElement extends HTMLElement {
     this.layoutToggleBtn = shadow.getElementById('layout-toggle-btn') as HTMLButtonElement;
     this.colResizer = shadow.getElementById('col-resizer')!;
     this.rowResizer = shadow.getElementById('row-resizer')!;
+    this.sidebarExpandBtn = shadow.getElementById('sidebar-expand-btn') as HTMLButtonElement;
+    this.restoreBtn = shadow.getElementById('restore-btn') as HTMLButtonElement;
 
     this.pinAllBtn.addEventListener('click', () => this.pinAllResults());
     this.unpinAllBtn.addEventListener('click', () => this.unpinAll());
     this.layoutToggleBtn.addEventListener('click', () => this.classList.toggle('sidebar-full-height'));
     this.colResizer.addEventListener('mousedown', (e) => this.startColResize(e));
     this.rowResizer.addEventListener('mousedown', (e) => this.startRowResize(e));
+    this.sidebarExpandBtn.addEventListener('click', () => {
+      this.setExpandedPanel(this.expandedPanel === 'sidebar' ? null : 'sidebar');
+    });
+    this.restoreBtn.addEventListener('click', () => this.setExpandedPanel(null));
 
     shadow.addEventListener('time-range-changed', this.onTimeRangeChanged.bind(this) as EventListener);
     shadow.addEventListener('time-filter-changed', this.onTimeFilterChanged.bind(this) as EventListener);
@@ -80,6 +90,7 @@ export class AppRootElement extends HTMLElement {
     shadow.addEventListener('lane-selected', this.onLaneSelected.bind(this) as EventListener);
     shadow.addEventListener('data-source-changed', this.onDataSourceChanged.bind(this) as EventListener);
     shadow.addEventListener('pin-toggled', this.onPinToggled.bind(this) as EventListener);
+    shadow.addEventListener('expand-toggled', this.onExpandToggled.bind(this) as EventListener);
 
     this.updatePinnedUi();
     this.initWorker();
@@ -167,6 +178,10 @@ export class AppRootElement extends HTMLElement {
       if (this.selectedId && !this.lastResults.some(ev => ev.id === this.selectedId)) {
         this.detailEl.hide();
         this.selectedId = null;
+        // Don't leave an expanded-but-now-empty entry-detail panel covering
+        // the whole viewport with nothing in it — see
+        // plans/panel-expand-restore.md.
+        if (this.expandedPanel === 'detail') this.setExpandedPanel(null);
       }
       this.mapEl.setEvents(this.lastResults, this.pinnedIds);
       this.timelineEl.setEvents(this.lastResults, this.pinnedIds);
@@ -354,6 +369,31 @@ export class AppRootElement extends HTMLElement {
     const active = this.lanesets.find(l => l.slug === this.activeLanesetId);
     const lane = active?.lanes.find(l => l.slug === id);
     this.mapEl.setLaneOutline(lane ? lane.geometry : null);
+  }
+
+  // ── expand/restore (TODO #18) ───────────────────────────────────────────
+
+  private onExpandToggled(e: Event): void {
+    const { panel } = (e as CustomEvent<{ panel: 'map' | 'timeline' | 'detail' }>).detail;
+    this.setExpandedPanel(this.expandedPanel === panel ? null : panel);
+  }
+
+  // Switching straight from one expanded panel to another (rather than
+  // requiring a restore first) is intentional — see
+  // plans/panel-expand-restore.md. Each component's own setExpanded(false)
+  // is called even when it was never the one that's now expanding, so a
+  // panel's own button icon resets correctly no matter what actually
+  // closed it (its own toggle, a different panel's toggle, or the global
+  // restore button).
+  private setExpandedPanel(panel: 'map' | 'timeline' | 'sidebar' | 'detail' | null): void {
+    this.expandedPanel = panel;
+    if (panel === null) this.removeAttribute('data-expanded');
+    else this.setAttribute('data-expanded', panel);
+    this.mapEl.setExpanded(panel === 'map');
+    this.timelineEl.setExpanded(panel === 'timeline');
+    this.detailEl.setExpanded(panel === 'detail');
+    this.sidebarExpandBtn.classList.toggle('expanded', panel === 'sidebar');
+    this.sidebarExpandBtn.title = panel === 'sidebar' ? 'Restore the normal layout' : 'Expand sidebar';
   }
 
   // ── layout resize (TODO #17) ────────────────────────────────────────────

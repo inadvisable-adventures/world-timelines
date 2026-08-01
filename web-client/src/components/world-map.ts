@@ -57,6 +57,7 @@ export class WorldMapElement extends HTMLElement {
   private boxClearBtn!: HTMLElement;
   private zoomFullBtn!: HTMLButtonElement;
   private zoomFitBtn!: HTMLButtonElement;
+  private expandBtn!: HTMLButtonElement;
 
   private events: HistoricalEvent[] = [];
   private pinnedIds: Set<string> = new Set();
@@ -98,6 +99,12 @@ export class WorldMapElement extends HTMLElement {
     this.boxClearBtn = shadow.getElementById('box-clear')!;
     this.zoomFullBtn = shadow.getElementById('zoom-full') as HTMLButtonElement;
     this.zoomFitBtn = shadow.getElementById('zoom-fit') as HTMLButtonElement;
+    this.expandBtn = shadow.getElementById('expand-btn') as HTMLButtonElement;
+    this.expandBtn.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('expand-toggled', {
+        detail: { panel: 'map' }, bubbles: true, composed: true,
+      }));
+    });
 
     this.resizeObserver = new ResizeObserver(() => this.syncSize());
     this.resizeObserver.observe(this);
@@ -157,6 +164,9 @@ export class WorldMapElement extends HTMLElement {
   highlightEvent(id: string | null): void { this.selectedId = id; this.draw(); }
   // Outlines a selected lane's geometry (null clears it).
   setLaneOutline(geom: MultiPolygon | null): void { this.laneOutline = geom; this.draw(); }
+  // Reflects expand/restore state driven by app-root (TODO #18) — the
+  // panel's own resize (via ResizeObserver) handles everything else.
+  setExpanded(isExpanded: boolean): void { this.expandBtn.classList.toggle('expanded', isExpanded); }
 
   private lw(): number { return this.canvas.width / this.dpr; }
   private lh(): number { return this.canvas.height / this.dpr; }

@@ -58,10 +58,18 @@
       world-timeline { width: 100%; height: 100%; display: block; }
       .top-links {
         flex: 0 0 auto; padding: 10px 10px 0; font-size: 0.72rem; color: #555;
+        display: flex; align-items: baseline; justify-content: space-between;
         user-select: none; -webkit-user-select: none;
       }
       .top-links a { color: #7eb8f7; text-decoration: none; }
       .top-links a:hover { text-decoration: underline; }
+      #sidebar-expand-btn {
+        flex: 0 0 auto; background: none; border: none; color: #555; cursor: pointer;
+        font-size: 12px; padding: 0; line-height: 1; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #sidebar-expand-btn:hover { color: #c0c0e0; }
+      #sidebar-expand-btn.expanded { color: #e8c25f; }
       category-picker { flex: 0 0 auto; }
       laneset-picker { flex: 0 0 auto; }
       query-editor { flex: 1 1 0; min-height: 0; border-top: 1px solid #1e2030; }
@@ -88,6 +96,54 @@
         user-select: none; -webkit-user-select: none;
       }
       #layout-toggle-btn:hover { border-color: #3a4060; color: #cfe0ff; background: rgba(126,184,247,0.1); }
+
+      /* Expand/restore (TODO #18) — a single data-expanded attribute on
+         the host drives which panel (if any) covers the full viewport.
+         Only the three top-level structural areas + resizers + sidebar
+         are ever hidden/repositioned here; settings-menu, the layout
+         toggle, and the loading overlay stay put regardless. See
+         plans/panel-expand-restore.md. */
+      :host([data-expanded]) .map-col,
+      :host([data-expanded]) .timeline-row,
+      :host([data-expanded]) .col-resizer,
+      :host([data-expanded]) .row-resizer {
+        display: none;
+      }
+      :host([data-expanded="map"]) .map-col,
+      :host([data-expanded="timeline"]) .timeline-row {
+        display: block; position: absolute; inset: 0; z-index: 90;
+      }
+      :host([data-expanded="map"]) .sidebar,
+      :host([data-expanded="timeline"]) .sidebar {
+        display: none;
+      }
+      :host([data-expanded="sidebar"]) .sidebar,
+      :host([data-expanded="detail"]) .sidebar {
+        position: absolute; inset: 0; z-index: 90; border-left: none;
+      }
+      /* Expanding entry-detail specifically: hide its sidebar siblings and
+         let it fill the (now fullscreen) sidebar box instead of its
+         normal fixed-height slot. */
+      :host([data-expanded="detail"]) .sidebar > *:not(entry-detail) {
+        display: none;
+      }
+      :host([data-expanded="detail"]) entry-detail {
+        flex: 1 1 auto;
+      }
+      #restore-btn {
+        /* Bottom-left, deliberately — top-left collides with the
+           sidebar's own top-links row once it's the fullscreen panel
+           (data-expanded="sidebar"), and every other corner is already
+           spoken for by settings-menu/layout-toggle-btn (top-right) or
+           world-map's mini-map (bottom-right). */
+        display: none; position: absolute; bottom: 8px; left: 8px; z-index: 90;
+        align-items: center; gap: 4px; padding: 5px 10px;
+        background: rgba(20,22,30,0.92); border: 1px solid #3a4060; color: #cfe0ff;
+        border-radius: 4px; font-size: 12px; cursor: pointer; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #restore-btn:hover { background: rgba(126,184,247,0.16); }
+      :host([data-expanded]) #restore-btn { display: flex; }
       .loading {
         position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
         background: rgba(15,17,23,0.85); font-size: 1rem; color: #888; pointer-events: none; z-index: 10;
@@ -100,7 +156,10 @@
     <div class="col-resizer" id="col-resizer" title="Drag to resize"></div>
     <div class="row-resizer" id="row-resizer" title="Drag to resize"></div>
     <div class="sidebar">
-      <div class="top-links">PROTOTYPE [ <a href="https://github.com/inadvisable-adventures/world-timelines" target="_blank" rel="noopener noreferrer">Code</a> | <a href="./ACKNOWLEDGEMENTS.html" target="_blank" rel="noopener noreferrer">Acknowledgements</a> ]</div>
+      <div class="top-links">
+        <span>PROTOTYPE [ <a href="https://github.com/inadvisable-adventures/world-timelines" target="_blank" rel="noopener noreferrer">Code</a> | <a href="./ACKNOWLEDGEMENTS.html" target="_blank" rel="noopener noreferrer">Acknowledgements</a> ]</span>
+        <button id="sidebar-expand-btn" title="Expand sidebar">⛶</button>
+      </div>
       <category-picker></category-picker>
       <laneset-picker></laneset-picker>
       <query-editor></query-editor>
@@ -117,6 +176,7 @@
     </div>
     <settings-menu></settings-menu>
     <button id="layout-toggle-btn" title="Switch between full-width timeline and full-height sidebar">⬓</button>
+    <button id="restore-btn" title="Restore the normal layout">⤢ Restore</button>
     <div class="loading" id="loading-overlay">Loading data…</div>
   </template>
 
@@ -195,6 +255,15 @@
       .mini-map-btns button:last-child { border-right: none; }
       .mini-map-btns button:hover { background: rgba(126,184,247,0.1); color: #7eb8f7; }
       .mini-map-btns button.hidden { display: none; }
+      #expand-btn {
+        position: absolute; top: 8px; right: 8px; z-index: 30;
+        width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+        background: rgba(20,22,30,0.9); border: 1px solid #2a2e42; border-radius: 3px;
+        color: #9fb4e0; cursor: pointer; font-size: 13px; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #expand-btn:hover { border-color: #3a4060; color: #cfe0ff; }
+      #expand-btn.expanded { color: #e8c25f; border-color: #7a6a40; }
     </style>
     <canvas></canvas>
     <div class="tooltip" id="tooltip">
@@ -203,6 +272,7 @@
       <div class="tooltip-desc" id="tooltip-desc"></div>
     </div>
     <div id="box-clear">×</div>
+    <button id="expand-btn" title="Expand this panel">⛶</button>
     <div class="mini-map-wrap">
       <canvas id="mini-canvas"></canvas>
       <div class="mini-map-btns">
@@ -240,6 +310,15 @@
         user-select: none; -webkit-user-select: none;
       }
       #fit-btn:hover { background: rgba(126,184,247,0.16); color: #cfe0ff; border-color: #5a6690; }
+      #expand-btn {
+        position: absolute; top: 8px; right: 8px; z-index: 30;
+        width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+        background: rgba(20,22,30,0.9); border: 1px solid #2a2e42; border-radius: 3px;
+        color: #9fb4e0; cursor: pointer; font-size: 13px; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #expand-btn:hover { border-color: #3a4060; color: #cfe0ff; }
+      #expand-btn.expanded { color: #e8c25f; border-color: #7a6a40; }
     </style>
     <canvas></canvas>
     <div class="tooltip" id="tooltip">
@@ -248,6 +327,7 @@
     </div>
     <div id="time-sel-clear">×</div>
     <button id="fit-btn" title="Fit view to selection, or select the current view">⤢ fit</button>
+    <button id="expand-btn" title="Expand this panel">⛶</button>
   </template>
 
   <template id="entry-detail-template">
@@ -274,6 +354,14 @@
       #pin-btn:hover { color: #c0c0e0; }
       #pin-btn.pinned { color: #e8c25f; }
       #pin-btn.hidden { display: none; }
+      #expand-btn {
+        flex: 0 0 auto; background: none; border: none; color: #555; cursor: pointer;
+        font-size: 13px; padding: 0 6px 0 0; line-height: 1; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #expand-btn:hover { color: #c0c0e0; }
+      #expand-btn.expanded { color: #e8c25f; }
+      #expand-btn.hidden { display: none; }
       .meta { margin-top: 4px; font-size: 0.7rem; color: #888; }
       #detail-cat {
         display: inline; border: 1px solid; border-radius: 8px; padding: 1px 6px;
@@ -290,9 +378,15 @@
         margin-top: 6px; font-size: 0.73rem; color: #8a8a9a; line-height: 1.4;
         display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
       }
+      /* Expanded (TODO #18): more space should show more of the
+         description, not waste it on the same 4-line clamp. */
+      :host(.expanded) #detail-desc {
+        -webkit-line-clamp: unset; overflow-y: auto; max-height: calc(100vh - 140px);
+      }
     </style>
     <div class="header">
       <div class="title"><a id="detail-link" href="#" target="_blank" rel="noopener noreferrer"></a></div>
+      <button id="expand-btn" title="Expand this panel">⛶</button>
       <button id="pin-btn" title="Pin this entry">⚐</button>
       <button id="close-btn">×</button>
     </div>

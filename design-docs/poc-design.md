@@ -297,13 +297,15 @@ need one).
 - Draws country outlines from `world-110m.geojson` (Natural Earth 110m, ~838 KB).
 - Renders all locations per event: point markers (colored circle), polygon outlines, circles.
 - Hover tooltip shows title, years, description. Click dispatches `event-selected`.
-- `setEvents(events)` and `highlightEvent(id)` are public methods.
+- `setEvents(events, pinnedIds?)` and `highlightEvent(id)` are public methods; pinned entries (TODO #16) get a thin gold accent ring additive to normal category/selection styling.
+- An `#expand-btn` (TODO #18) dispatches `expand-toggled` with `{panel: 'map'}`; `setExpanded(bool)` reflects the resulting state back onto the button, driven by `<app-root>`.
 
 ### `<world-timeline>` Web Component
 
 - Horizontally scrollable + zoomable Canvas timeline. X-axis = time, default −3000 to 2100. Pan with drag; zoom with the wheel; debounced `time-range-changed` on change.
 - **Geographic lanes (#65):** the body is a vertical stack of lane bands defined by the active *laneset* (a division of Earth's surface — see [Lanes & lanesets](#lanes--lanesets-todo-65)). Each lane is a very dark band with a viewport-sticky left title + collapse chevron. Entries are assigned to a lane by point-in-polygon of their primary coordinate (`geo/point-in-polygon.ts`, on the capped result set) and packed vertically within the lane; markers use a brighter border than fill. Historical eras are children of their lane, drawn with dotted boundary lines and view-centered labels (overlap capped to keep the latest-ending era when crowded). An optional top **Global** lane (collapsed by default) holds world-spanning eras, toggled by the synthetic "global eras" category chip. Shift-wheel scrolls the lane stack when it overflows.
 - Click an entry → `event-selected`; click a lane title → `lane-selected` (chevron toggles collapse). Lane and entry selection are mutually exclusive.
+- `setEvents(events, pinnedIds?)` mirrors `<world-map>`'s pinned-accent support; an `#expand-btn`/`setExpanded(bool)` pair mirrors its expand/restore support too (TODO #18).
 
 ### `<laneset-picker>` Web Component
 
@@ -356,6 +358,15 @@ need one).
   resizer tracks drag two CSS custom properties (`--sidebar-w`,
   `--timeline-h`) that apply under either arrangement. See
   `plans/layout-resize-controls.md` (TODO #17).
+- A `data-expanded` attribute on the host (`'map' | 'timeline' |
+  'sidebar' | 'detail' | null`) drives one panel covering the full
+  viewport at a time — CSS-only show/hide plus `position: absolute;
+  inset: 0` on whichever panel is expanded, no JS layout math (unlike
+  the resize drag above). Sidebar and entry-detail share the same
+  fullscreen-sidebar mechanism (a `display: none` ancestor can't be
+  selectively un-hidden for one descendant, so expanding entry-detail
+  hides its sidebar *siblings* instead, rather than hiding `.sidebar`
+  itself). See `plans/panel-expand-restore.md` (TODO #18).
 - Handles all cross-component sync:
   - `time-range-changed` → sends updated `timeRange` to worker, triggers new query.
   - `dsl-changed` → parses category filter from DSL, updates picker; sends query to worker.
@@ -363,6 +374,12 @@ need one).
   - `event-selected` → calls `highlightEvent(id)` on map and timeline.
   - `pin-toggled` (from entry-detail's pin button) → updates the pinned-id
     set, the `pin:` DSL line, and re-queries (TODO #16).
+  - `expand-toggled` (from map/timeline/entry-detail's own expand button,
+    `{panel}`) → sets a `data-expanded` attribute on the app-root host,
+    which CSS alone turns into a full-viewport overlay for that one panel;
+    calls `setExpanded(bool)` on all three panels (and the sidebar's own
+    expand button) so each one's icon reflects the actual state
+    regardless of what changed it (TODO #18).
 
 ---
 

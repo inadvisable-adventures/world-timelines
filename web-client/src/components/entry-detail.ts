@@ -30,6 +30,7 @@ export class EntryDetailElement extends HTMLElement {
   private sourceEl!: HTMLElement;
   private wikiLinkEl!: HTMLAnchorElement;
   private pinBtnEl!: HTMLButtonElement;
+  private expandBtnEl!: HTMLButtonElement;
   private descEl!: HTMLElement;
   private currentEntryId: string | null = null;
   private onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') this.hide(); };
@@ -45,6 +46,7 @@ export class EntryDetailElement extends HTMLElement {
     this.sourceEl = shadow.getElementById('detail-source')!;
     this.wikiLinkEl = shadow.getElementById('detail-wiki-link') as HTMLAnchorElement;
     this.pinBtnEl = shadow.getElementById('pin-btn') as HTMLButtonElement;
+    this.expandBtnEl = shadow.getElementById('expand-btn') as HTMLButtonElement;
     this.descEl = shadow.getElementById('detail-desc')!;
 
     shadow.getElementById('close-btn')!.addEventListener('click', () => this.hide());
@@ -54,6 +56,11 @@ export class EntryDetailElement extends HTMLElement {
         detail: { id: this.currentEntryId },
         bubbles: true,
         composed: true,
+      }));
+    });
+    this.expandBtnEl.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('expand-toggled', {
+        detail: { panel: 'detail' }, bubbles: true, composed: true,
       }));
     });
     document.addEventListener('keydown', this.onKeyDown);
@@ -75,6 +82,7 @@ export class EntryDetailElement extends HTMLElement {
     this.catEl.style.borderColor = color;
     this.sourceEl.textContent = `· ${ev.citationLabel}`;
     this.pinBtnEl.classList.remove('hidden');
+    this.expandBtnEl.classList.remove('hidden');
     this.setPinned(isPinned);
     // Secondary cross-reference to Wikipedia (TODO item 7), shown only
     // when it adds real information beyond the primary citation above —
@@ -105,6 +113,7 @@ export class EntryDetailElement extends HTMLElement {
     this.wikiLinkEl.removeAttribute('href');
     this.wikiLinkEl.classList.add('hidden');
     this.pinBtnEl.classList.add('hidden'); // lanes aren't pinnable
+    this.expandBtnEl.classList.add('hidden'); // lanes aren't expandable either
     this.descEl.textContent = description;
     this.classList.remove('hidden');
   }
@@ -115,6 +124,15 @@ export class EntryDetailElement extends HTMLElement {
   setPinned(isPinned: boolean): void {
     this.pinBtnEl.classList.toggle('pinned', isPinned);
     this.pinBtnEl.title = isPinned ? 'Unpin this entry' : 'Pin this entry';
+  }
+
+  // Reflects expand/restore state driven by app-root (TODO #18). Toggling
+  // the host's own .expanded class (not just the button's) lets the
+  // template's CSS lift #detail-desc's line-clamp while expanded — more
+  // space should show more of the description, not waste it.
+  setExpanded(isExpanded: boolean): void {
+    this.expandBtnEl.classList.toggle('expanded', isExpanded);
+    this.classList.toggle('expanded', isExpanded);
   }
 
   hide(): void {

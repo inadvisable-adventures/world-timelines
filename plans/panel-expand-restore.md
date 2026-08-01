@@ -1,4 +1,4 @@
-# Expand/restore any panel to full viewport (TODO item 18)
+# Expand/restore any panel to full viewport (TODO item 18) — COMPLETED
 
 ## Summary
 
@@ -138,3 +138,51 @@ panel, not just its outer box.
 6. Visual check in a browser once one is available — another
    layout/CSS-heavy feature poorly suited to a Node-side check. Flag
    explicitly if skipped.
+
+## Result
+
+Implemented as designed, with one real bug caught and fixed during
+implementation and one placement adjustment.
+
+- **Global restore button placement**: the plan didn't pin down an exact
+  corner. Top-left was the first instinct (matching the "restore" =
+  "start over" association) but that collides with the sidebar's own
+  `.top-links` row once the sidebar itself is the fullscreen panel
+  (`data-expanded="sidebar"`) — both would render at the same physical
+  spot. Moved to bottom-left, the one corner not already claimed by
+  settings-menu/layout-toggle-btn (top-right) or world-map's mini-map
+  (bottom-right).
+- **CSS cascade double-checked by hand, not assumed**: the "hide
+  everything, then re-show the one expanding panel" pattern relies on
+  `:host([data-expanded]) .map-col { display: none }` and
+  `:host([data-expanded="map"]) .map-col { display: block; ... }`
+  actually having the show-rule win. Both selectors compute to identical
+  specificity (`:host([attr])` and `:host([attr="value"])` don't differ
+  in specificity — only source order breaks the tie), so this only works
+  because the hide rule was written *before* the show rule in the
+  stylesheet. Verified this by hand-computing specificity rather than
+  assuming CSS attribute-value selectors outrank attribute-presence
+  selectors (they don't) — confirmed correct as written, but fragile
+  enough to be worth documenting here for whoever touches this next.
+- **Sidebar/entry-detail mechanism**: implemented exactly as designed —
+  `.sidebar` becomes the fullscreen overlay for both `"sidebar"` and
+  `"detail"`, with `.sidebar > *:not(entry-detail) { display: none }`
+  only for the `"detail"` case. Confirmed via the compiled output that
+  `entry-detail`'s `flex: 1 1 auto` override (specificity from the
+  `:host([data-expanded="detail"]) entry-detail` type-selector chain)
+  correctly outranks the base `entry-detail { flex: 0 0 auto }` rule
+  regardless of source order (a type selector's inherently low
+  specificity means this one didn't depend on cascade order the way the
+  `.map-col`/`.timeline-row` show/hide pair does).
+- **Auto-restore on deselect**: implemented in `onWorkerMessage`'s
+  existing selection-invalidation branch, exactly where the plan
+  identified it needed to go.
+- **Verification performed**: `tsc --noEmit` clean, full build, confirmed
+  all four components' compiled output reference `expand-toggled` and the
+  running server serves the updated files. The CSS cascade/specificity
+  correctness (the trickiest part of this feature, per the point above)
+  was verified by manual selector-specificity computation rather than
+  observed in a render, since no browser tool is available this session
+  (confirmed via `ToolSearch`). **Not visually verified in a browser** —
+  flagged explicitly, same as TODO #17 and every prior UI-heavy item this
+  session.
