@@ -34,10 +34,19 @@
       category-picker { flex: 0 0 auto; }
       laneset-picker { flex: 0 0 auto; }
       query-editor { flex: 1 1 0; min-height: 0; border-top: 1px solid #1e2030; }
-      #results-count {
-        flex: 0 0 auto; padding: 6px 10px; font-size: 0.72rem; color: #555;
-        border-top: 1px solid #1e2030; user-select: none; -webkit-user-select: none;
+      #results-bar {
+        flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding: 6px 10px;
+        font-size: 0.72rem; color: #555; border-top: 1px solid #1e2030;
+        user-select: none; -webkit-user-select: none;
       }
+      #pinned-count { color: #e8c25f; }
+      #results-bar .spacer { flex: 1 1 auto; }
+      #results-bar button {
+        flex: 0 0 auto; background: none; border: 1px solid #2a2e42; border-radius: 3px;
+        color: #888; cursor: pointer; font-size: 0.68rem; padding: 2px 6px; font-family: inherit;
+      }
+      #results-bar button:hover { border-color: #3a4060; color: #cfe0ff; }
+      #unpin-all-btn.hidden { display: none; }
       entry-detail { flex: 0 0 auto; }
       settings-menu { position: absolute; top: 8px; right: 8px; z-index: 50; }
       .loading {
@@ -55,7 +64,12 @@
         <category-picker></category-picker>
         <laneset-picker></laneset-picker>
         <query-editor></query-editor>
-        <div id="results-count"></div>
+        <div id="results-bar">
+          <span id="results-count"></span><span id="pinned-count"></span>
+          <span class="spacer"></span>
+          <button id="pin-all-btn" title="Pin every entry in the current results">Pin all</button>
+          <button id="unpin-all-btn" class="hidden" title="Unpin everything">Unpin all</button>
+        </div>
         <entry-detail id="entry-detail"></entry-detail>
       </div>
     </div>
@@ -212,6 +226,14 @@
         user-select: none; -webkit-user-select: none;
       }
       #close-btn:hover { color: #c0c0e0; }
+      #pin-btn {
+        flex: 0 0 auto; background: none; border: none; color: #555; cursor: pointer;
+        font-size: 13px; padding: 0 6px 0 0; line-height: 1; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #pin-btn:hover { color: #c0c0e0; }
+      #pin-btn.pinned { color: #e8c25f; }
+      #pin-btn.hidden { display: none; }
       .meta { margin-top: 4px; font-size: 0.7rem; color: #888; }
       #detail-cat {
         display: inline; border: 1px solid; border-radius: 8px; padding: 1px 6px;
@@ -231,6 +253,7 @@
     </style>
     <div class="header">
       <div class="title"><a id="detail-link" href="#" target="_blank" rel="noopener noreferrer"></a></div>
+      <button id="pin-btn" title="Pin this entry">⚐</button>
       <button id="close-btn">×</button>
     </div>
     <div class="meta">
@@ -314,6 +337,26 @@
         caret-color: #7eb8f7; min-height: 60px; max-height: 200px;
         border-bottom: 1px solid #1e2030; box-sizing: border-box;
       }
+      textarea.hidden { display: none; }
+      /* At-rest (unfocused) rendered view — real per-character folding
+         inside a <textarea> isn't possible, so this sibling view stands in
+         whenever the textarea isn't focused. See
+         plans/pin-unpin-and-dsl-line-folding.md. */
+      #folded-view {
+        flex: 0 0 auto; width: 100%; overflow-y: auto; min-height: 60px; max-height: 200px;
+        background: #080a10; border-bottom: 1px solid #1e2030; box-sizing: border-box;
+        font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.75rem; line-height: 1.55; padding: 8px 10px; cursor: text;
+      }
+      #folded-view.hidden { display: none; }
+      .dsl-line {
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        color: #c0c8e0; cursor: pointer;
+      }
+      .dsl-line.unfolded { white-space: normal; overflow: visible; text-overflow: clip; word-break: break-all; }
+      .dsl-line.placeholder { color: #444a60; cursor: text; }
+      .fold-btn { margin-left: 6px; color: #555; user-select: none; -webkit-user-select: none; }
+      .fold-btn:hover { color: #7eb8f7; }
       .examples-label {
         flex: 0 0 auto; padding: 8px 10px 2px;
         font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
@@ -329,7 +372,8 @@
       .hint:hover { color: #4a5880; background: rgba(126,184,247,0.05); }
     </style>
     <div class="label">Query</div>
-    <textarea id="dsl-textarea" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+    <textarea id="dsl-textarea" class="hidden" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+    <div id="folded-view"></div>
     <div class="examples-label">Examples</div>
     <div class="hints" id="hints"></div>
   </template>

@@ -40,6 +40,14 @@ export function openCache(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+// Cache-only read (no fetch-if-missing) — exposed for callers that only
+// want whatever's already local (e.g. resolving pinned ids, which have no
+// live-fetch fallback for some sources — see
+// plans/pin-unpin-and-dsl-line-folding.md).
+export function getCachedByIds<T extends CachedRecord>(db: IDBDatabase, store: string, ids: string[]): Promise<Map<string, T>> {
+  return getMany(db, store, ids);
+}
+
 function getMany<T extends CachedRecord>(db: IDBDatabase, store: string, ids: string[]): Promise<Map<string, T>> {
   return new Promise((resolve, reject) => {
     const result = new Map<string, T>();

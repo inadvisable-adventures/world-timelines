@@ -8,12 +8,14 @@ export interface ParsedQuery {
   filters: DslFilter[];
   limit:   number;
   laneset: string | null; // active laneset id, 'none', or null (= app default)
+  pinnedIds: string[];    // ids to keep visible regardless of query filters
 }
 
 export function parseDsl(dsl: string): ParsedQuery {
   const filters: DslFilter[] = [];
   let limit = DEFAULT_LIMIT;
   let laneset: string | null = null;
+  let pinnedIds: string[] = [];
 
   for (const rawLine of dsl.split('\n')) {
     const line = rawLine.trim();
@@ -30,6 +32,15 @@ export function parseDsl(dsl: string): ParsedQuery {
     const laneM = /^laneset\s+([\w-]+)$/i.exec(line);
     if (laneM) {
       laneset = laneM[1].toLowerCase();
+      continue;
+    }
+
+    // pin: id1, id2, ... — not a filter (doesn't restrict results, adds
+    // entries back in regardless of the query), so it's a top-level
+    // statement like limit/laneset rather than a DslFilter.
+    const pinM = /^pin\s*:\s*(.+)$/i.exec(line);
+    if (pinM) {
+      pinnedIds = pinM[1].split(',').map(s => s.trim()).filter(Boolean);
       continue;
     }
 
@@ -74,7 +85,7 @@ export function parseDsl(dsl: string): ParsedQuery {
     }
   }
 
-  return { filters, limit, laneset };
+  return { filters, limit, laneset, pinnedIds };
 }
 
 function parseRange(s: string): [number, number] | null {

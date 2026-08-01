@@ -215,6 +215,10 @@ export interface ReadyResponse {
 export interface QueryResponse {
   type: 'results';
   events: HistoricalEvent[];
+  // Resolved pinned entries, kept separate from `events` (the raw query
+  // matches) so the results count keeps meaning "matched the query," not
+  // "matched or pinned" — see plans/pin-unpin-and-dsl-line-folding.md.
+  pinnedEvents: HistoricalEvent[];
 }
 
 export type WorkerOutMessage = ReadyResponse | QueryResponse;

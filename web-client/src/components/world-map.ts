@@ -28,6 +28,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   other:               '#c0b0e0',
 };
 
+// Pinned-marker accent — see plans/pin-unpin-and-dsl-line-folding.md.
+const PIN_COLOR = '#e8c25f';
+
 const MINI_W = 150;
 const MINI_H = 75;
 
@@ -56,6 +59,7 @@ export class WorldMapElement extends HTMLElement {
   private zoomFitBtn!: HTMLButtonElement;
 
   private events: HistoricalEvent[] = [];
+  private pinnedIds: Set<string> = new Set();
   private selectedId: string | null = null;
   private laneOutline: MultiPolygon | null = null; // selected lane geometry (#65)
   private geoFeatures: GeoFeature[] = [];
@@ -145,7 +149,11 @@ export class WorldMapElement extends HTMLElement {
     }
   }
 
-  setEvents(events: HistoricalEvent[]): void { this.events = events; this.draw(); }
+  setEvents(events: HistoricalEvent[], pinnedIds: Set<string> = new Set()): void {
+    this.events = events;
+    this.pinnedIds = pinnedIds;
+    this.draw();
+  }
   highlightEvent(id: string | null): void { this.selectedId = id; this.draw(); }
   // Outlines a selected lane's geometry (null clears it).
   setLaneOutline(geom: MultiPolygon | null): void { this.laneOutline = geom; this.draw(); }
@@ -423,7 +431,8 @@ export class WorldMapElement extends HTMLElement {
     for (const ev of this.events) {
       const color = CATEGORY_COLORS[ev.category] ?? CATEGORY_COLORS.other;
       const isSelected = ev.id === this.selectedId;
-      this.drawLocations(ev.locations, ev.title, color, isSelected, lw, lh);
+      const isPinned = this.pinnedIds.has(ev.id);
+      this.drawLocations(ev.locations, ev.title, color, isSelected, isPinned, lw, lh);
     }
 
     ctx.restore();
@@ -593,6 +602,7 @@ export class WorldMapElement extends HTMLElement {
     title: string,
     color: string,
     isSelected: boolean,
+    isPinned: boolean,
     lw: number,
     lh: number,
   ): void {
@@ -621,6 +631,7 @@ export class WorldMapElement extends HTMLElement {
           ctx.lineWidth = 0.8;
           ctx.stroke();
         }
+        if (isPinned) this.drawPinRing(x, y, r + 3);
         if (this.zoomScale >= 4 && x >= 0 && x <= lw) {
           ctx.save();
           ctx.font = '10px system-ui, sans-serif';
@@ -630,10 +641,10 @@ export class WorldMapElement extends HTMLElement {
         }
 
       } else if (loc.type === 'polygon') {
-        this.drawRings(loc.rings, color, isSelected, lw, lh);
+        this.drawRings(loc.rings, color, isSelected, isPinned, lw, lh);
 
       } else if (loc.type === 'multipolygon') {
-        for (const rings of loc.polygons) this.drawRings(rings, color, isSelected, lw, lh);
+        for (const rings of loc.polygons) this.drawRings(rings, color, isSelected, isPinned, lw, lh);
 
       } else if (loc.type === 'path') {
         const pts = loc.waypoints;
@@ -643,7 +654,7 @@ export class WorldMapElement extends HTMLElement {
         for (let i = 1; i < pts.length; i++) {
           ctx.lineTo(this.mapLngToX(pts[i].lng, lw), this.mapLatToY(pts[i].lat, lh));
         }
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = isPinned ? PIN_COLOR : color;
         ctx.lineWidth = isSelected ? 3 : 2;
         ctx.stroke();
 
@@ -660,11 +671,28 @@ export class WorldMapElement extends HTMLElement {
         ctx.strokeStyle = color;
         ctx.lineWidth = isSelected ? 2 : 1;
         ctx.stroke();
+        if (isPinned) this.drawPinRing(cx, cy, r + 3);
       }
 
       ctx.globalAlpha = 1;
       ctx.setLineDash([]);
     }
+  }
+
+  // A thin gold ring just outside a marker, indicating pinned state —
+  // additive to whatever selection/category styling already drew, not a
+  // replacement for it. See plans/pin-unpin-and-dsl-line-folding.md.
+  private drawPinRing(x: number, y: number, r: number): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = PIN_COLOR;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawLaneOutline(lw: number, lh: number): void {
@@ -693,6 +721,7 @@ export class WorldMapElement extends HTMLElement {
     rings: Array<Array<[number, number]>>,
     color: string,
     isSelected: boolean,
+    isPinned: boolean,
     lw: number,
     lh: number,
   ): void {
@@ -708,8 +737,8 @@ export class WorldMapElement extends HTMLElement {
     }
     ctx.fillStyle = color + '40';
     ctx.fill('evenodd');
-    ctx.strokeStyle = color;
-    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.strokeStyle = isPinned ? PIN_COLOR : color;
+    ctx.lineWidth = isSelected ? 2 : (isPinned ? 1.6 : 1);
     ctx.stroke();
   }
 

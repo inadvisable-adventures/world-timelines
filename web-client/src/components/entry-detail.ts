@@ -29,7 +29,9 @@ export class EntryDetailElement extends HTMLElement {
   private catEl!: HTMLElement;
   private sourceEl!: HTMLElement;
   private wikiLinkEl!: HTMLAnchorElement;
+  private pinBtnEl!: HTMLButtonElement;
   private descEl!: HTMLElement;
+  private currentEntryId: string | null = null;
   private onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') this.hide(); };
 
   connectedCallback(): void {
@@ -42,9 +44,18 @@ export class EntryDetailElement extends HTMLElement {
     this.catEl  = shadow.getElementById('detail-cat')!;
     this.sourceEl = shadow.getElementById('detail-source')!;
     this.wikiLinkEl = shadow.getElementById('detail-wiki-link') as HTMLAnchorElement;
+    this.pinBtnEl = shadow.getElementById('pin-btn') as HTMLButtonElement;
     this.descEl = shadow.getElementById('detail-desc')!;
 
     shadow.getElementById('close-btn')!.addEventListener('click', () => this.hide());
+    this.pinBtnEl.addEventListener('click', () => {
+      if (!this.currentEntryId) return;
+      this.dispatchEvent(new CustomEvent('pin-toggled', {
+        detail: { id: this.currentEntryId },
+        bubbles: true,
+        composed: true,
+      }));
+    });
     document.addEventListener('keydown', this.onKeyDown);
     this.hide();
   }
@@ -53,7 +64,8 @@ export class EntryDetailElement extends HTMLElement {
     document.removeEventListener('keydown', this.onKeyDown);
   }
 
-  show(ev: HistoricalEvent): void {
+  show(ev: HistoricalEvent, isPinned: boolean): void {
+    this.currentEntryId = ev.id;
     this.linkEl.textContent = ev.title;
     this.linkEl.href = ev.citationUrl;
     this.yearsEl.textContent = formatYears(ev);
@@ -62,6 +74,8 @@ export class EntryDetailElement extends HTMLElement {
     this.catEl.style.color = color;
     this.catEl.style.borderColor = color;
     this.sourceEl.textContent = `· ${ev.citationLabel}`;
+    this.pinBtnEl.classList.remove('hidden');
+    this.setPinned(isPinned);
     // Secondary cross-reference to Wikipedia (TODO item 7), shown only
     // when it adds real information beyond the primary citation above —
     // i.e. not for entries whose primary citation already is Wikipedia.
@@ -80,6 +94,7 @@ export class EntryDetailElement extends HTMLElement {
   // Shows a lane/laneset (name + description) instead of an entry. Reuses the
   // same panel; the title is plain text (no wiki link), no year/category.
   showLane(name: string, description: string): void {
+    this.currentEntryId = null;
     this.linkEl.textContent = name;
     this.linkEl.removeAttribute('href');
     this.yearsEl.textContent = '';
@@ -89,8 +104,17 @@ export class EntryDetailElement extends HTMLElement {
     this.sourceEl.textContent = '';
     this.wikiLinkEl.removeAttribute('href');
     this.wikiLinkEl.classList.add('hidden');
+    this.pinBtnEl.classList.add('hidden'); // lanes aren't pinnable
     this.descEl.textContent = description;
     this.classList.remove('hidden');
+  }
+
+  // Updates just the pin button's visual state — used both by show() and by
+  // app-root when pin state changes elsewhere (e.g. the DSL was edited
+  // directly) while this same entry is already open.
+  setPinned(isPinned: boolean): void {
+    this.pinBtnEl.classList.toggle('pinned', isPinned);
+    this.pinBtnEl.title = isPinned ? 'Unpin this entry' : 'Pin this entry';
   }
 
   hide(): void {

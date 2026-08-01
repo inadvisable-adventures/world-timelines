@@ -14,6 +14,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   other:               '#c0b0e0',
 };
 
+// Pinned-marker accent — see plans/pin-unpin-and-dsl-line-folding.md.
+const PIN_COLOR = '#e8c25f';
+
 // Palette cycled across lanes (regions). Kept muted; bands render very dark.
 const LANE_PALETTE = [
   '#e07070', '#d4b840', '#50b880', '#8888d8', '#d49060',
@@ -84,6 +87,7 @@ export class TimelineElement extends HTMLElement {
   private visibleStart = -3000;
   private visibleEnd = 2100;
   private events: HistoricalEvent[] = [];
+  private pinnedIds: Set<string> = new Set();
   private eras: HistoricalEra[] = [];
   private laneset: Laneset | null = null;
   private showGlobalEras = false;
@@ -154,7 +158,12 @@ export class TimelineElement extends HTMLElement {
   }
 
   // ── public API ──────────────────────────────────────────────────────────
-  setEvents(events: HistoricalEvent[]): void { this.events = events; this.layout(); this.draw(); }
+  setEvents(events: HistoricalEvent[], pinnedIds: Set<string> = new Set()): void {
+    this.events = events;
+    this.pinnedIds = pinnedIds;
+    this.layout();
+    this.draw();
+  }
   setEras(eras: HistoricalEra[]): void { this.eras = eras; this.layout(); this.draw(); }
   setLaneset(laneset: Laneset | null): void { this.laneset = laneset; this.layout(); this.draw(); }
   setShowGlobalEras(show: boolean): void { this.showGlobalEras = show; this.layout(); this.draw(); }
@@ -483,20 +492,31 @@ export class TimelineElement extends HTMLElement {
       const cy = entryTop + p.row * ENTRY_ROW_H + ENTRY_ROW_H / 2;
       const color = CATEGORY_COLORS[p.event.category] ?? CATEGORY_COLORS.other;
       const isSel = p.event.id === this.selectedId;
+      const isPinned = this.pinnedIds.has(p.event.id);
       // Duration shaded region (border brighter than fill).
       if (p.endYear !== p.startYear && p.x2 - p.x > 1) {
         ctx.fillStyle = color + '33';
         ctx.fillRect(p.x, cy - MARKER_R, p.x2 - p.x, MARKER_R * 2);
-        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.strokeStyle = isPinned ? PIN_COLOR : color; ctx.lineWidth = 1;
         ctx.strokeRect(p.x, cy - MARKER_R, p.x2 - p.x, MARKER_R * 2);
       }
       // Marker: dark fill, bright border.
+      const r = isSel ? MARKER_R + 2 : MARKER_R;
       ctx.beginPath();
-      ctx.arc(p.x, cy, isSel ? MARKER_R + 2 : MARKER_R, 0, Math.PI * 2);
+      ctx.arc(p.x, cy, r, 0, Math.PI * 2);
       ctx.fillStyle = isSel ? '#ffffff' : color + '66';
       ctx.fill();
       ctx.strokeStyle = color; ctx.lineWidth = isSel ? 2 : 1.4;
       ctx.stroke();
+      // Thin gold ring just outside the marker, additive to selection/
+      // category styling — see plans/pin-unpin-and-dsl-line-folding.md.
+      if (isPinned) {
+        ctx.beginPath();
+        ctx.arc(p.x, cy, r + 2.5, 0, Math.PI * 2);
+        ctx.strokeStyle = PIN_COLOR;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
     }
   }
 

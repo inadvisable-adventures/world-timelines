@@ -1,8 +1,41 @@
 import type { DslFilter, EventCategory, GeoFilter, HistoricalEvent, WorkerInMessage, WorkerOutMessage } from '../types/index.js';
 import { parseDsl } from './dsl-parser.js';
-import { openCache, resolveViaCache, putCached, ENTRIES_STORE, WIKIDATA_ENTRIES_STORE } from '../cache/idb-cache.js';
+import { openCache, resolveViaCache, getCachedByIds, putCached, ENTRIES_STORE, WIKIDATA_ENTRIES_STORE } from '../cache/idb-cache.js';
 import { fetchEntriesByIds, fetchSlim } from '../cache/api-client.js';
 import { queryQLever } from '../wikidata/qlever-client.js';
+
+// Matches this app's Postgres-issued entry ids — distinguishes them from
+// Wikidata Q-ids, which have no by-id fetch endpoint (see below).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Resolves pinned ids to full entries, cache-only except for a Postgres
+// fallback fetch. Q-id-shaped pins with no cache hit can't be resolved —
+// there's no by-id fetch for the live QLever source in this codebase, so a
+// Wikidata entry can only be pinned after a query has actually surfaced it
+// this session. See plans/pin-unpin-and-dsl-line-folding.md.
+async function resolvePinnedEvents(pinnedIds: string[]): Promise<HistoricalEvent[]> {
+  if (pinnedIds.length === 0) return [];
+  const db = await openCache();
+  const [fromPostgresCache, fromWikidataCache] = await Promise.all([
+    getCachedByIds<HistoricalEvent>(db, ENTRIES_STORE, pinnedIds),
+    getCachedByIds<HistoricalEvent>(db, WIKIDATA_ENTRIES_STORE, pinnedIds),
+  ]);
+
+  const resolved = new Map<string, HistoricalEvent>();
+  for (const id of pinnedIds) {
+    const hit = fromPostgresCache.get(id) ?? fromWikidataCache.get(id);
+    if (hit) resolved.set(id, hit);
+  }
+
+  const stillMissing = pinnedIds.filter(id => !resolved.has(id) && UUID_RE.test(id));
+  if (stillMissing.length > 0) {
+    const fetched = await fetchEntriesByIds(stillMissing);
+    await putCached(db, ENTRIES_STORE, fetched);
+    for (const ev of fetched) resolved.set(ev.id, ev);
+  }
+
+  return pinnedIds.map(id => resolved.get(id)).filter((ev): ev is HistoricalEvent => ev !== undefined);
+}
 
 const MAX_LIMIT = 500;
 
@@ -125,16 +158,17 @@ self.addEventListener('message', async (ev: MessageEvent<WorkerInMessage>) => {
 
   if (msg.type === 'query') {
     try {
-      const { filters, limit } = parseDsl(msg.dsl);
+      const { filters, limit, pinnedIds } = parseDsl(msg.dsl);
       const bounds = resolveQueryBounds(filters, msg.timeRange, msg.geoFilter, limit);
-      const events = msg.dataSource === 'wikidata'
-        ? await queryWikidata(bounds)
-        : await queryPostgres(bounds);
-      const out: WorkerOutMessage = { type: 'results', events };
+      const [events, pinnedEvents] = await Promise.all([
+        msg.dataSource === 'wikidata' ? queryWikidata(bounds) : queryPostgres(bounds),
+        resolvePinnedEvents(pinnedIds),
+      ]);
+      const out: WorkerOutMessage = { type: 'results', events, pinnedEvents };
       self.postMessage(out);
     } catch (err) {
       console.error('[worker] Query failed:', err);
-      const out: WorkerOutMessage = { type: 'results', events: [] };
+      const out: WorkerOutMessage = { type: 'results', events: [], pinnedEvents: [] };
       self.postMessage(out);
     }
   }

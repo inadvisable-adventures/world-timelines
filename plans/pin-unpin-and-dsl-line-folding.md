@@ -1,4 +1,4 @@
-# Pin/unpin entries and result sets, plus DSL line folding (TODO item 16)
+# Pin/unpin entries and result sets, plus DSL line folding (TODO item 16) — COMPLETED
 
 ## Summary
 
@@ -200,3 +200,72 @@ No schema/DB changes — this is entirely client-side session state.
    unusually UI-heavy (canvas accents, focus/blur view switching) for a
    Node-side check to meaningfully substitute for. Flag explicitly if
    skipped, same as prior TODO items.
+
+## Result
+
+Implemented as designed, with one simplification found during
+implementation and one honest verification gap.
+
+- **Simplification**: the plan's Affected Files list had `WorkerInMessage`
+  gaining a `pinnedIds` field, mirroring `pinnedEvents` on the response
+  side. Turned out unnecessary once actually wired up — the worker
+  already receives the full `dsl` string and calls `parseDsl(msg.dsl)`
+  for `filters`/`limit`; `pinnedIds` was already sitting right there in
+  the same parse result, so passing it again as a separate message field
+  would've been pure duplication. Removed before it shipped;
+  `QueryRequest` is unchanged from before this TODO item.
+- **`dsl-parser.ts`**: `pin: id1, id2, ...` parses as a top-level
+  statement (checked alongside `limit`/`laneset`, before the generic
+  `filter <field>:` pattern), exactly as designed. Verified directly
+  (not just by reading the code) against the built worker bundle: empty
+  DSL → `pinnedIds: []`; a `pin:` line with mixed Q-id/UUID values →
+  correctly split/trimmed; irregular whitespace around commas and colon
+  handled.
+- **`query-worker.ts`**: `resolvePinnedEvents` checks both cache stores,
+  falls back to `fetchEntriesByIds` only for UUID-shaped misses (a
+  dedicated regex distinguishes them from Q-ids, matching the plan's
+  reasoning almost exactly — the alternative of trying both id shapes
+  against both stores blindly was rejected during design since it risks
+  a 400 from `/api/entries/by-ids` on a Q-id, per `validateUuidList`).
+  The fallback fetch path itself was confirmed live against the running
+  `local-concept-server` (a real UUID round-tripped through
+  `/api/entries/by-ids` correctly) — the cache-hit paths (IndexedDB)
+  could not be exercised outside a browser and are unverified beyond
+  code review.
+- **`app-root.ts`**: `lastQueryEvents` (raw query matches) vs.
+  `lastResults` (merged with pinned) kept separate exactly as designed,
+  so the results count and "pin all" both operate on the right set.
+  `updatePinnedUi()` also refreshes the open entry-detail panel's pin
+  button if the currently-selected entry's pin state changed via a
+  direct DSL edit, closing a gap the initial design sketch didn't fully
+  spell out (component-level `setPinned()` exists for exactly this).
+- **Visual accents**: `world-map.ts` and `timeline.ts` both draw a thin
+  gold (`#e8c25f`) ring/stroke additively for pinned entries, across all
+  five location types on the map (point, polygon, multipolygon, path,
+  circle) — broader coverage than the plan's "narrow, point-focused"
+  framing suggested, but turned out cheap to extend consistently once
+  `isPinned` was threaded through `drawLocations`/`drawRings`.
+- **DSL folding**: implemented via a sibling `#folded-view` shown only
+  while the textarea is blurred, matching the plan. One refinement
+  beyond the plan's sketch: whether a folded-view click enters raw-edit
+  mode or toggles fold state is decided by an actual `scrollWidth >
+  clientWidth` check on the clicked row (real DOM overflow, not a guess)
+  — clicking a short line (or the empty-DSL placeholder) focuses the
+  textarea directly, since toggling "fold" on a line that isn't
+  truncated would be a confusing no-op; only genuinely truncated lines
+  unfold. Both the fold-back `[fold]` control and re-clicking the
+  unfolded row's own text refold it, satisfying the TODO's "an easy way
+  to refold it back" with two redundant affordances.
+- **Verification performed**: `tsc --noEmit` clean under both
+  `tsconfig.json` and `tsconfig.worker.json`; a full `npm run build`;
+  confirmed the rebuilt static files are what `local-concept-server`
+  actually serves (grepped served JS for the new symbols); direct
+  `dsl-parser.ts` unit-level checks against the compiled output for the
+  new `pin:` grammar; a live fallback-fetch check against the running
+  server. **Not visually verified in a browser** — no browser tool
+  available this session (confirmed via `ToolSearch`, not just assumed
+  from precedent). This item is unusually UI-heavy (canvas drawing,
+  focus/blur view switching, click-to-unfold interaction) relative to
+  how much a Node-level check can actually substitute for, more so than
+  prior TODO items — flagged explicitly rather than treated as a routine
+  formality.

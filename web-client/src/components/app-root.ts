@@ -19,13 +19,22 @@ export class AppRootElement extends HTMLElement {
   private editorEl!: QueryEditorElement;
   private loadingOverlay!: HTMLElement;
   private resultsCountEl!: HTMLElement;
+  private pinnedCountEl!: HTMLElement;
+  private pinAllBtn!: HTMLButtonElement;
+  private unpinAllBtn!: HTMLButtonElement;
   private detailEl!: EntryDetailElement;
   private settingsEl!: SettingsMenuElement;
 
   private currentTimeRange: [number, number] = [-3000, 2100];
   private timeSelection: [number, number] | null = null;
+  // The current query's own matches, unmerged with pinned entries — what
+  // "pin all results" operates on, and what the results count reflects.
+  private lastQueryEvents: HistoricalEvent[] = [];
+  // lastQueryEvents merged with resolved pinned entries — what's actually
+  // rendered on the map/timeline and what entry selection resolves against.
   private lastResults: HistoricalEvent[] = [];
   private selectedId: string | null = null;
+  private pinnedIds: Set<string> = new Set();
   private lanesets: Laneset[] = [];
   private activeLanesetId = 'continents'; // default; 'none' hides lanes
   private dataSource: DataSource = 'postgres'; // default preserves prior behavior
@@ -42,8 +51,14 @@ export class AppRootElement extends HTMLElement {
     this.editorEl = shadow.querySelector('query-editor') as QueryEditorElement;
     this.loadingOverlay = shadow.getElementById('loading-overlay')!;
     this.resultsCountEl = shadow.getElementById('results-count')!;
+    this.pinnedCountEl = shadow.getElementById('pinned-count')!;
+    this.pinAllBtn = shadow.getElementById('pin-all-btn') as HTMLButtonElement;
+    this.unpinAllBtn = shadow.getElementById('unpin-all-btn') as HTMLButtonElement;
     this.detailEl = shadow.getElementById('entry-detail') as EntryDetailElement;
     this.settingsEl = shadow.querySelector('settings-menu') as SettingsMenuElement;
+
+    this.pinAllBtn.addEventListener('click', () => this.pinAllResults());
+    this.unpinAllBtn.addEventListener('click', () => this.unpinAll());
 
     shadow.addEventListener('time-range-changed', this.onTimeRangeChanged.bind(this) as EventListener);
     shadow.addEventListener('time-filter-changed', this.onTimeFilterChanged.bind(this) as EventListener);
@@ -55,7 +70,9 @@ export class AppRootElement extends HTMLElement {
     shadow.addEventListener('global-eras-toggled', this.onGlobalErasToggled.bind(this) as EventListener);
     shadow.addEventListener('lane-selected', this.onLaneSelected.bind(this) as EventListener);
     shadow.addEventListener('data-source-changed', this.onDataSourceChanged.bind(this) as EventListener);
+    shadow.addEventListener('pin-toggled', this.onPinToggled.bind(this) as EventListener);
 
+    this.updatePinnedUi();
     this.initWorker();
     this.loadEras().catch(() => { /* era bands optional */ });
     this.loadLanesets().catch(() => { /* lanes optional */ });
@@ -136,13 +153,14 @@ export class AppRootElement extends HTMLElement {
     }
     if (msg.type === 'results') {
       this.loadingOverlay.classList.add('hidden');
-      this.lastResults = msg.events;
-      if (this.selectedId && !msg.events.some(ev => ev.id === this.selectedId)) {
+      this.lastQueryEvents = msg.events;
+      this.lastResults = mergeById(msg.events, msg.pinnedEvents);
+      if (this.selectedId && !this.lastResults.some(ev => ev.id === this.selectedId)) {
         this.detailEl.hide();
         this.selectedId = null;
       }
-      this.mapEl.setEvents(msg.events);
-      this.timelineEl.setEvents(msg.events);
+      this.mapEl.setEvents(this.lastResults, this.pinnedIds);
+      this.timelineEl.setEvents(this.lastResults, this.pinnedIds);
       const n = msg.events.length;
       this.resultsCountEl.textContent = n === 0 ? 'No entries' : `${n} ${n === 1 ? 'entry' : 'entries'}`;
     }
@@ -185,7 +203,11 @@ export class AppRootElement extends HTMLElement {
 
   private onDslChanged(e: Event): void {
     const dsl = (e as CustomEvent<{ dsl: string }>).detail.dsl;
-    const { filters, laneset } = parseDsl(dsl);
+    const { filters, laneset, pinnedIds } = parseDsl(dsl);
+
+    // Sync pinned state (no DSL write-back here — the DSL is what changed).
+    this.pinnedIds = new Set(pinnedIds);
+    this.updatePinnedUi();
 
     // Sync active laneset (absent line → default 'continents').
     const wantLaneset = laneset ?? 'continents';
@@ -265,7 +287,49 @@ export class AppRootElement extends HTMLElement {
     this.mapEl.highlightEvent(id);
     this.timelineEl.highlightEvent(id);
     const entry = this.lastResults.find(ev => ev.id === id);
-    if (entry) this.detailEl.show(entry);
+    if (entry) this.detailEl.show(entry, this.pinnedIds.has(id));
+  }
+
+  private onPinToggled(e: Event): void {
+    const { id } = (e as CustomEvent<{ id: string }>).detail;
+    this.togglePin(id);
+  }
+
+  private togglePin(id: string): void {
+    if (this.pinnedIds.has(id)) this.pinnedIds.delete(id);
+    else this.pinnedIds.add(id);
+    this.syncPinnedDsl();
+    this.updatePinnedUi();
+    this.sendQuery();
+  }
+
+  // Pins every entry the *current query* matched (lastQueryEvents, not the
+  // already-pinned-merged lastResults) — "pin all results" means "pin what
+  // my filter matched," not "re-pin whatever's already on screen."
+  private pinAllResults(): void {
+    for (const ev of this.lastQueryEvents) this.pinnedIds.add(ev.id);
+    this.syncPinnedDsl();
+    this.updatePinnedUi();
+    this.sendQuery();
+  }
+
+  private unpinAll(): void {
+    this.pinnedIds.clear();
+    this.syncPinnedDsl();
+    this.updatePinnedUi();
+    this.sendQuery();
+  }
+
+  private syncPinnedDsl(): void {
+    const newLine = this.pinnedIds.size === 0 ? '' : `pin: ${[...this.pinnedIds].join(', ')}`;
+    this.editorEl.setDsl(setDslLine(this.editorEl.getDsl(), /^\s*pin\s*:/i, newLine));
+  }
+
+  private updatePinnedUi(): void {
+    const n = this.pinnedIds.size;
+    this.pinnedCountEl.textContent = n === 0 ? '' : `· ${n} pinned`;
+    this.unpinAllBtn.classList.toggle('hidden', n === 0);
+    if (this.selectedId) this.detailEl.setPinned(this.pinnedIds.has(this.selectedId));
   }
 
   private onLaneSelected(e: Event): void {
@@ -297,6 +361,14 @@ function toEra(entry: HistoricalEvent): HistoricalEra {
     source: srcTag ?? 'world-history',
     lastUpdated: entry.lastUpdated,
   };
+}
+
+// Query matches first, then any pinned entries not already among them —
+// preserves the query's own ordering rather than pinned-first.
+function mergeById(matches: HistoricalEvent[], pinned: HistoricalEvent[]): HistoricalEvent[] {
+  const seen = new Set(matches.map(ev => ev.id));
+  const extra = pinned.filter(ev => !seen.has(ev.id));
+  return [...matches, ...extra];
 }
 
 function setDslLine(dsl: string, pattern: RegExp, newLine: string): string {
