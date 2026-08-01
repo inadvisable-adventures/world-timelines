@@ -83,6 +83,34 @@ export async function listEntries(params: URLSearchParams): Promise<SlimResult[]
     )`);
   }
 
+  // Spatial filters against an imported boundary entry (e.g. TODO #12's
+  // Cliopatria polygons), addressed by slug — see
+  // plans/boundary-geometry-spatial-filter.md. The boundary side checks
+  // *any* of its locations (not just ordinal 0): a future boundary entry
+  // with multiple polygon locations should count membership in any of
+  // them, and ST_Contains already treats a MultiPolygon's disjoint parts
+  // as one logical union, so Cliopatria's case needs no extra ST_Union.
+  const insideSlug = params.get('insideSlug');
+  if (insideSlug) {
+    vars['insideSlug'] = insideSlug;
+    conditions.push(`EXISTS (
+      SELECT 1 FROM entry_locations el, entries b, entry_locations bl
+      WHERE el.entry_id = entries.id AND el.ordinal = 0 AND el.geometry IS NOT NULL
+        AND b.slug = :'insideSlug' AND bl.entry_id = b.id AND bl.geometry IS NOT NULL
+        AND ST_Contains(bl.geometry, ST_PointOnSurface(el.geometry))
+    )`);
+  }
+  const outsideSlug = params.get('outsideSlug');
+  if (outsideSlug) {
+    vars['outsideSlug'] = outsideSlug;
+    conditions.push(`NOT EXISTS (
+      SELECT 1 FROM entry_locations el, entries b, entry_locations bl
+      WHERE el.entry_id = entries.id AND el.ordinal = 0 AND el.geometry IS NOT NULL
+        AND b.slug = :'outsideSlug' AND bl.entry_id = b.id AND bl.geometry IS NOT NULL
+        AND ST_Contains(bl.geometry, ST_PointOnSurface(el.geometry))
+    )`);
+  }
+
   const limit = Math.min(MAX_LIMIT, parseIntParam(params.get('limit'), DEFAULT_LIMIT));
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -107,6 +135,31 @@ export async function listEras(): Promise<SlimResult[]> {
     ORDER BY start_year, id
   `;
   return runQuery<SlimResult>(sql);
+}
+
+export interface BoundaryOption {
+  id: string;
+  slug: string;
+  title: string;
+}
+
+// Entries usable as an inside/outside spatial filter target (TODO #19) —
+// anything with at least one polygon/multipolygon location. Not routed
+// through the slim-list-plus-cache machinery listEntries/getEntriesByIds
+// use: the picker only ever needs slug/title to render, never the actual
+// coordinates (those stay server-side, consumed only by listEntries'
+// ST_Contains condition above), so there's no large payload to justify
+// caching infrastructure for what's currently ~12 rows. See
+// plans/boundary-geometry-spatial-filter.md.
+export async function listBoundaries(): Promise<BoundaryOption[]> {
+  const sql = `
+    SELECT DISTINCT e.id, e.slug, e.title
+    FROM entries e
+    JOIN entry_locations el ON el.entry_id = e.id
+    WHERE el.kind IN ('polygon', 'multipolygon')
+    ORDER BY e.title
+  `;
+  return runQuery<BoundaryOption>(sql);
 }
 
 // Full HistoricalEvent-shaped records for a given list of ids, reconstructing

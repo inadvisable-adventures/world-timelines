@@ -72,6 +72,7 @@
       #sidebar-expand-btn.expanded { color: #e8c25f; }
       category-picker { flex: 0 0 auto; }
       laneset-picker { flex: 0 0 auto; }
+      boundary-picker { flex: 0 0 auto; }
       query-editor { flex: 1 1 0; min-height: 0; border-top: 1px solid #1e2030; }
       #results-bar {
         flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding: 6px 10px;
@@ -162,6 +163,7 @@
       </div>
       <category-picker></category-picker>
       <laneset-picker></laneset-picker>
+      <boundary-picker></boundary-picker>
       <query-editor></query-editor>
       <div id="results-bar">
         <span id="results-count"></span><span id="pinned-count"></span>
@@ -451,6 +453,56 @@
       .item-desc { font-size: 0.67rem; color: #7a7f95; line-height: 1.35; margin-top: 2px; }
     </style>
     <div class="label">Laneset</div>
+    <button id="current"></button>
+    <div id="popup" class="popup hidden"></div>
+  </template>
+
+  <template id="boundary-picker-template">
+    <style>
+      :host { display: block; padding: 4px 10px 10px; position: relative; }
+      .label {
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #555; margin-bottom: 6px; user-select: none; -webkit-user-select: none;
+      }
+      #current {
+        width: 100%; text-align: left; background: #11141f; color: #c0c8e0;
+        border: 1px solid #2a2e42; border-radius: 4px; padding: 6px 10px;
+        font-size: 0.76rem; cursor: pointer; font-family: inherit;
+        user-select: none; -webkit-user-select: none;
+      }
+      #current::after { content: '▾'; float: right; color: #6a7290; }
+      #current:hover { border-color: #3a4060; }
+      .popup {
+        position: absolute; left: 10px; right: 10px; z-index: 40;
+        margin-top: 3px; background: #11141f; border: 1px solid #2a2e42;
+        border-radius: 4px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+        max-height: 260px; overflow-y: auto;
+      }
+      .popup.hidden { display: none; }
+      .empty {
+        padding: 10px; font-size: 0.72rem; color: #555; user-select: none; -webkit-user-select: none;
+      }
+      .row {
+        display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+        border-bottom: 1px solid #1c2032;
+      }
+      .row:last-child { border-bottom: none; }
+      .row:hover { background: rgba(126,184,247,0.06); }
+      .row-name {
+        flex: 1 1 auto; min-width: 0; font-size: 0.74rem; color: #d0d0f0;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        user-select: none; -webkit-user-select: none;
+      }
+      .toggle {
+        flex: 0 0 auto; background: transparent; border: 1px solid #2a2e42; color: #888;
+        border-radius: 3px; padding: 2px 7px; font-size: 0.68rem; cursor: pointer;
+        font-family: inherit; user-select: none; -webkit-user-select: none;
+      }
+      .toggle:hover { border-color: #3a4060; color: #cfe0ff; }
+      .toggle.in.selected { background: rgba(126,184,247,0.18); border-color: #7eb8f7; color: #7eb8f7; }
+      .toggle.out.selected { background: rgba(232,194,95,0.16); border-color: #e8c25f; color: #e8c25f; }
+    </style>
+    <div class="label">Boundary Filter</div>
     <button id="current"></button>
     <div id="popup" class="popup hidden"></div>
   </template>

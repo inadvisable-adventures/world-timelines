@@ -136,6 +136,21 @@ export interface HistoricalEra {
 }
 
 // ---------------------------------------------------------------------------
+// Boundary geometry as a spatial filter target (TODO #19) — see
+// plans/boundary-geometry-spatial-filter.md
+// ---------------------------------------------------------------------------
+
+// An entry usable as an inside/outside filter target — anything with at
+// least one polygon/multipolygon location (e.g. TODO #12's Cliopatria
+// entries). Just enough to render the picker; the actual geometry stays
+// server-side, consumed only by listEntries' ST_Contains condition.
+export interface BoundaryOption {
+  id: string;
+  slug: string;
+  title: string;
+}
+
+// ---------------------------------------------------------------------------
 // Lanes / lanesets (timeline geographic lanes — TODO #65)
 // ---------------------------------------------------------------------------
 
@@ -175,6 +190,11 @@ export type DslFilter =
   | { kind: 'text';     query: string }
   | { kind: 'lat';      min: number; max: number }
   | { kind: 'lng';      min: number; max: number }
+  // Spatial filter against an imported boundary entry's stored geometry
+  // (e.g. TODO #12's Cliopatria polygons), addressed by slug — Postgres-
+  // only, see plans/boundary-geometry-spatial-filter.md (TODO #19).
+  | { kind: 'insideBoundary';  slug: string }
+  | { kind: 'outsideBoundary'; slug: string }
 ;
 
 // ---------------------------------------------------------------------------

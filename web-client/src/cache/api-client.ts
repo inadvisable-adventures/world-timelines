@@ -2,7 +2,7 @@
 // app-root.ts (main thread) and query-worker.ts (worker) so the request
 // shape isn't duplicated between them.
 
-import type { HistoricalEvent, Laneset } from '../types/index.js';
+import type { BoundaryOption, HistoricalEvent, Laneset } from '../types/index.js';
 import type { SlimRecord } from './idb-cache.js';
 
 async function getJson<T>(url: string): Promise<T> {
@@ -32,4 +32,12 @@ export function fetchEntriesByIds(ids: string[]): Promise<HistoricalEvent[]> {
 
 export function fetchLanesetsByIds(ids: string[]): Promise<Laneset[]> {
   return postIds<Laneset>('/api/lanesets/by-ids', ids);
+}
+
+// Small, uncached fetch (see plans/boundary-geometry-spatial-filter.md —
+// the picker only ever needs slug/title, never the actual polygon
+// coordinates, so this bypasses the slim-list-plus-IndexedDB-cache
+// machinery entirely).
+export function fetchBoundaries(): Promise<BoundaryOption[]> {
+  return getJson<BoundaryOption[]>('/api/entries/boundaries');
 }

@@ -47,6 +47,10 @@ interface QueryBounds {
   category: EventCategory[] | null;
   text: string | null;
   limit: number;
+  // Spatial filter against an imported boundary entry, by slug — Postgres
+  // only (see queryWikidata, which never reads these). TODO #19.
+  insideSlug: string | null;
+  outsideSlug: string | null;
 }
 
 // Combines the DSL's year/lat/lng filters with the timeline's visible range
@@ -65,6 +69,8 @@ function resolveQueryBounds(
   let lngMax: number | null = null;
   let category: EventCategory[] | null = null;
   let text: string | null = null;
+  let insideSlug: string | null = null;
+  let outsideSlug: string | null = null;
 
   for (const f of filters) {
     switch (f.kind) {
@@ -86,6 +92,12 @@ function resolveQueryBounds(
         lngMin = lngMin === null ? f.min : Math.max(lngMin, f.min);
         lngMax = lngMax === null ? f.max : Math.min(lngMax, f.max);
         break;
+      case 'insideBoundary':
+        insideSlug = f.slug;
+        break;
+      case 'outsideBoundary':
+        outsideSlug = f.slug;
+        break;
     }
   }
 
@@ -102,6 +114,7 @@ function resolveQueryBounds(
     lngRange: lngMin !== null && lngMax !== null ? [lngMin, lngMax] : null,
     category, text,
     limit: Math.min(limit, MAX_LIMIT),
+    insideSlug, outsideSlug,
   };
 }
 
@@ -113,6 +126,8 @@ function boundsToSearchParams(bounds: QueryBounds): URLSearchParams {
   if (bounds.text) params.set('text', bounds.text);
   if (bounds.latRange) { params.set('latMin', String(bounds.latRange[0])); params.set('latMax', String(bounds.latRange[1])); }
   if (bounds.lngRange) { params.set('lngMin', String(bounds.lngRange[0])); params.set('lngMax', String(bounds.lngRange[1])); }
+  if (bounds.insideSlug) params.set('insideSlug', bounds.insideSlug);
+  if (bounds.outsideSlug) params.set('outsideSlug', bounds.outsideSlug);
   params.set('limit', String(bounds.limit));
   return params;
 }

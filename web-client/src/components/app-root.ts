@@ -1,11 +1,12 @@
 import type { DataSource, EventCategory, HistoricalEra, HistoricalEvent, Laneset, WorkerInMessage, WorkerOutMessage } from '../types/index.js';
 import { parseDsl } from '../worker/dsl-parser.js';
 import { openCache, resolveViaCache, ENTRIES_STORE, LANESETS_STORE } from '../cache/idb-cache.js';
-import { fetchEntriesByIds, fetchLanesetsByIds, fetchSlim } from '../cache/api-client.js';
+import { fetchBoundaries, fetchEntriesByIds, fetchLanesetsByIds, fetchSlim } from '../cache/api-client.js';
 import type { GeoFilter, WorldMapElement } from './world-map.js';
 import type { TimelineElement } from './timeline.js';
 import type { CategoryPickerElement } from './category-picker.js';
 import type { LanesetPickerElement } from './laneset-picker.js';
+import type { BoundaryPickerElement } from './boundary-picker.js';
 import type { QueryEditorElement } from './query-editor.js';
 import type { EntryDetailElement } from './entry-detail.js';
 import type { SettingsMenuElement } from './settings-menu.js';
@@ -16,6 +17,7 @@ export class AppRootElement extends HTMLElement {
   private timelineEl!: TimelineElement;
   private pickerEl!: CategoryPickerElement;
   private lanesetPickerEl!: LanesetPickerElement;
+  private boundaryPickerEl!: BoundaryPickerElement;
   private editorEl!: QueryEditorElement;
   private loadingOverlay!: HTMLElement;
   private resultsCountEl!: HTMLElement;
@@ -55,6 +57,7 @@ export class AppRootElement extends HTMLElement {
     this.timelineEl = shadow.querySelector('world-timeline') as TimelineElement;
     this.pickerEl = shadow.querySelector('category-picker') as CategoryPickerElement;
     this.lanesetPickerEl = shadow.querySelector('laneset-picker') as LanesetPickerElement;
+    this.boundaryPickerEl = shadow.querySelector('boundary-picker') as BoundaryPickerElement;
     this.editorEl = shadow.querySelector('query-editor') as QueryEditorElement;
     this.loadingOverlay = shadow.getElementById('loading-overlay')!;
     this.resultsCountEl = shadow.getElementById('results-count')!;
@@ -91,11 +94,13 @@ export class AppRootElement extends HTMLElement {
     shadow.addEventListener('data-source-changed', this.onDataSourceChanged.bind(this) as EventListener);
     shadow.addEventListener('pin-toggled', this.onPinToggled.bind(this) as EventListener);
     shadow.addEventListener('expand-toggled', this.onExpandToggled.bind(this) as EventListener);
+    shadow.addEventListener('boundary-filter-changed', this.onBoundaryFilterChanged.bind(this) as EventListener);
 
     this.updatePinnedUi();
     this.initWorker();
     this.loadEras().catch(() => { /* era bands optional */ });
     this.loadLanesets().catch(() => { /* lanes optional */ });
+    this.loadBoundaries().catch(() => { /* boundary filter optional */ });
   }
 
   private async loadEras(): Promise<void> {
@@ -116,6 +121,14 @@ export class AppRootElement extends HTMLElement {
     this.lanesetPickerEl.setLanesets(this.lanesets);
     this.lanesetPickerEl.setSelected(this.activeLanesetId);
     this.applyActiveLaneset();
+  }
+
+  // Boundary options (TODO #19) — a small, uncached direct fetch; see
+  // fetchBoundaries' own comment for why this skips the slim-list-plus-
+  // cache machinery loadLanesets/loadEras use.
+  private async loadBoundaries(): Promise<void> {
+    const boundaries = await fetchBoundaries();
+    this.boundaryPickerEl.setBoundaries(boundaries);
   }
 
   private onDataSourceChanged(e: Event): void {
@@ -262,6 +275,22 @@ export class AppRootElement extends HTMLElement {
     const lng = (lngFilter && lngFilter.kind === 'lng') ? [lngFilter.min, lngFilter.max] as [number, number] : null;
     this.mapEl.setExternalFilter(lat, lng);
 
+    // Sync boundary-filter picker (TODO #19)
+    const insideFilter = filters.find(f => f.kind === 'insideBoundary');
+    const outsideFilter = filters.find(f => f.kind === 'outsideBoundary');
+    this.boundaryPickerEl.setSelected({
+      inside: (insideFilter && insideFilter.kind === 'insideBoundary') ? insideFilter.slug : null,
+      outside: (outsideFilter && outsideFilter.kind === 'outsideBoundary') ? outsideFilter.slug : null,
+    });
+
+    this.sendQuery();
+  }
+
+  private onBoundaryFilterChanged(e: Event): void {
+    const { inside, outside } = (e as CustomEvent<{ inside: string | null; outside: string | null }>).detail;
+    let newDsl = setDslLine(this.editorEl.getDsl(), /^\s*filter\s+inside\s*:/i, inside ? `filter inside: ${inside}` : '');
+    newDsl = setDslLine(newDsl, /^\s*filter\s+outside\s*:/i, outside ? `filter outside: ${outside}` : '');
+    this.editorEl.setDsl(newDsl);
     this.sendQuery();
   }
 

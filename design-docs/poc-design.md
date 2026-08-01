@@ -198,6 +198,8 @@ laneset continents
 | `text`     | `text: query`              | Case-insensitive substring in title or description |
 | `lat`      | `lat: MIN to MAX`          | Primary location latitude                        |
 | `lng`      | `lng: MIN to MAX`          | Primary location longitude                       |
+| `inside`   | `inside: <boundary-slug>`  | Primary location falls within an imported boundary polygon's geometry (Postgres source only — TODO #19) |
+| `outside`  | `outside: <boundary-slug>` | Primary location falls outside that boundary's geometry (TODO #19) |
 
 A non-filter directive, `laneset <id>` / `laneset none`, selects the timeline's active geographic laneset (it does not filter results). The **category picker** and **laneset picker** are visual shortcuts that generate/update the `filter category:` and `laneset` lines respectively, and reflect DSL edits back. The **timeline** time range is passed to the worker as a separate `timeRange` parameter that ANDs with the DSL results.
 
@@ -312,6 +314,29 @@ need one).
 - Sits below the category picker. Shows the current laneset's name; clicking opens a pick-list of all lanesets plus **None** (with descriptions).
 - Dispatches `laneset-changed` with `{ id }`; bidirectional with the DSL `laneset` line. Exposes `setLanesets(...)` / `setSelected(id)`.
 
+### `<boundary-picker>` Web Component (TODO #19)
+
+- Sits below the laneset picker; same button+popup structure as
+  `<laneset-picker>`, except each popup row is a boundary entry (e.g. one
+  of TODO #12's Cliopatria Mongol Empire time-slices) with two
+  independent toggles, "In"/"Out", rather than one click-to-select — an
+  inside and an outside boundary can be active at once ("inside X but
+  outside Y" is coherent), so this is two independent selections, not
+  one. Options come from `GET /api/entries/boundaries`
+  (`{id, slug, title}[]` for any entry with a polygon/multipolygon
+  location) — a small direct fetch, not routed through the IndexedDB
+  cache machinery lanesets use, since the picker never needs the actual
+  polygon coordinates (those stay server-side).
+- Dispatches `boundary-filter-changed` with `{ inside: string | null,
+  outside: string | null }`; bidirectional with the DSL `filter inside:`/
+  `filter outside:` lines. Exposes `setBoundaries(...)` /
+  `setSelected({inside, outside})`.
+- See `plans/boundary-geometry-spatial-filter.md` — a *filter*, not a
+  special lane (the TODO offered either; filter chosen as DB-native and
+  automatically generalizing to any future polygon-shaped import, versus
+  teaching the separate lanesets/lanes schema to also source geometry
+  from `entries`).
+
 ### `<category-picker>` Web Component
 
 - Shows one toggle chip per `EventCategory` with the category's color.
@@ -380,6 +405,9 @@ need one).
     calls `setExpanded(bool)` on all three panels (and the sidebar's own
     expand button) so each one's icon reflects the actual state
     regardless of what changed it (TODO #18).
+  - `boundary-filter-changed` (from `<boundary-picker>`, `{inside,
+    outside}`) → updates the `filter inside:`/`filter outside:` DSL
+    lines and re-queries (TODO #19).
 
 ---
 

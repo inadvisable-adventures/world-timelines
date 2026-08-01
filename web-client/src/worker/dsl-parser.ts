@@ -82,6 +82,16 @@ export function parseDsl(dsl: string): ParsedQuery {
         if (range) filters.push({ kind: 'lng', min: range[0], max: range[1] });
         break;
       }
+
+      case 'inside': {
+        if (value) filters.push({ kind: 'insideBoundary', slug: value });
+        break;
+      }
+
+      case 'outside': {
+        if (value) filters.push({ kind: 'outsideBoundary', slug: value });
+        break;
+      }
     }
   }
 

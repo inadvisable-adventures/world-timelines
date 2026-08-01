@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { listEntries, getEntriesByIds, listEras } from './api/entries.js';
+import { listEntries, getEntriesByIds, listEras, listBoundaries } from './api/entries.js';
 import { listLanesets, getLanesetsByIds } from './api/lanesets.js';
 import { BadRequestError, QueryError } from './db.js';
 
@@ -59,6 +59,10 @@ async function handleApi(req: http.IncomingMessage, res: http.ServerResponse, pa
     }
     if (method === 'GET' && pathname === '/api/eras') {
       sendJson(res, 200, await listEras());
+      return;
+    }
+    if (method === 'GET' && pathname === '/api/entries/boundaries') {
+      sendJson(res, 200, await listBoundaries());
       return;
     }
     if (method === 'GET' && pathname === '/api/lanesets') {

@@ -1,4 +1,4 @@
-# Use imported boundary geometry as spatial filters (TODO item 19)
+# Use imported boundary geometry as spatial filters (TODO item 19) — COMPLETED
 
 ## Summary
 
@@ -156,3 +156,47 @@ two new filter kinds, picker → DSL via `setDslLine` on the new event.
 4. Visual check in a browser once one is available — the picker
    interaction itself (two independent toggle states per row) is real
    UI logic worth actually seeing render. Flag explicitly if skipped.
+
+## Result
+
+Implemented exactly as designed, with one layering fix caught during
+implementation and real (not just spot-checked-by-code-reading) query
+verification against the live database.
+
+- **`BoundaryOption` layering fix**: first draft defined this interface
+  directly in `boundary-picker.ts` and had `api-client.ts` (the cache/
+  fetch layer) import it from there — backwards, since every other
+  shared shape (`HistoricalEvent`, `Laneset`) lives in the central
+  `types/index.ts` and components import *from* there, not the reverse.
+  Moved before it shipped.
+- **Server-side filter verified against real data, not just read**: with
+  the local server rebuilt and restarted, `GET /api/entries/boundaries`
+  returns exactly the 12 Cliopatria entries (confirmed count and
+  content, not assumed from the SQL). `insideSlug=mongol-empire-1206-
+  1209` (the earliest, smallest time-slice) against the full 57-entry
+  seeded dataset returned exactly 7 matches — all seven being the *other*
+  Mongol Empire time-slices themselves (their representative points fall
+  within the earliest slice's core Mongolian territory, which the later,
+  larger slices still contain). No other seeded entry (Great Pyramid of
+  Giza, etc.) qualifies, which is exactly right given the sample
+  dataset's real content — none of those famous entries are
+  geographically anywhere near Mongolia. Cross-checked that `inside` +
+  `outside` on the same slug partition the dataset exactly (7 + 50 = 57,
+  the full unfiltered count) and that a larger, later time-slice
+  (`mongol-empire-1285-1293`) correctly returns more matches (16) as the
+  territory grows.
+- **DSL round-trip verified against the compiled parser**, not just
+  read: `filter inside: mongol-empire-1206-1209` / `filter outside:
+  mongol-empire-1285-1293` on two lines parses to exactly the two
+  expected `DslFilter` objects.
+- **Verification performed**: `tsc --noEmit` clean in both `web-client/`
+  (`tsconfig.json` and `tsconfig.worker.json`) and `local-concept-
+  server/`; full builds of both packages; the running server restarted
+  and confirmed to serve the rebuilt static files (`boundary-picker.js`
+  present, `app-root.js` references the new event/loader); the endpoint
+  and filter behavior checks above run against the real seeded database,
+  not simulated. **Not visually verified in a browser** — the picker's
+  two-independent-toggle interaction is real UI logic that would
+  benefit from actually being seen, but no browser tool is available
+  this session (confirmed via `ToolSearch`), consistent with every
+  UI-touching TODO item this session.
