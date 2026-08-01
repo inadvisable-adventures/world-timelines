@@ -123,8 +123,15 @@ export async function getEntriesByIds(rawIds: unknown): Promise<unknown[]> {
       -- construction (the ingester sets it directly from page.title) —
       -- unlike the Wikidata/QLever path, where the display label and the
       -- real article title can diverge. See
-      -- plans/qlever-require-wikipedia-page.md.
-      e.title AS "wikipediaTitle",
+      -- plans/qlever-require-wikipedia-page.md. But that's only true for
+      -- rows without an explicit citation_url (the wiki-dump-ingested
+      -- ones, per the citation_url comment below) -- the Cliopatria/
+      -- Beagle/Great Wall boundary imports share this same table and are
+      -- not Wikipedia articles at all, so wikipediaTitle must stay empty
+      -- for those or entry-detail.ts's secondary cross-reference link
+      -- would point at a bogus URL. See
+      -- plans/entry-detail-citation-precision.md.
+      CASE WHEN e.citation_url = '' THEN e.title ELSE '' END AS "wikipediaTitle",
       e.category,
       e.infobox_type AS "infoboxType",
       e.description,

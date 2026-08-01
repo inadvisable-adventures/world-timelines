@@ -28,6 +28,7 @@ export class EntryDetailElement extends HTMLElement {
   private yearsEl!: HTMLElement;
   private catEl!: HTMLElement;
   private sourceEl!: HTMLElement;
+  private wikiLinkEl!: HTMLAnchorElement;
   private descEl!: HTMLElement;
   private onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') this.hide(); };
 
@@ -40,6 +41,7 @@ export class EntryDetailElement extends HTMLElement {
     this.yearsEl = shadow.getElementById('detail-years')!;
     this.catEl  = shadow.getElementById('detail-cat')!;
     this.sourceEl = shadow.getElementById('detail-source')!;
+    this.wikiLinkEl = shadow.getElementById('detail-wiki-link') as HTMLAnchorElement;
     this.descEl = shadow.getElementById('detail-desc')!;
 
     shadow.getElementById('close-btn')!.addEventListener('click', () => this.hide());
@@ -60,6 +62,17 @@ export class EntryDetailElement extends HTMLElement {
     this.catEl.style.color = color;
     this.catEl.style.borderColor = color;
     this.sourceEl.textContent = `· ${ev.citationLabel}`;
+    // Secondary cross-reference to Wikipedia (TODO item 7), shown only
+    // when it adds real information beyond the primary citation above —
+    // i.e. not for entries whose primary citation already is Wikipedia.
+    // See plans/entry-detail-citation-precision.md.
+    if (ev.wikipediaTitle && ev.citationLabel !== 'Wikipedia') {
+      this.wikiLinkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(ev.wikipediaTitle)}`;
+      this.wikiLinkEl.classList.remove('hidden');
+    } else {
+      this.wikiLinkEl.removeAttribute('href');
+      this.wikiLinkEl.classList.add('hidden');
+    }
     this.descEl.textContent = ev.description;
     this.classList.remove('hidden');
   }
@@ -74,6 +87,8 @@ export class EntryDetailElement extends HTMLElement {
     this.catEl.style.color = '#c8a060';
     this.catEl.style.borderColor = '#c8a060';
     this.sourceEl.textContent = '';
+    this.wikiLinkEl.removeAttribute('href');
+    this.wikiLinkEl.classList.add('hidden');
     this.descEl.textContent = description;
     this.classList.remove('hidden');
   }

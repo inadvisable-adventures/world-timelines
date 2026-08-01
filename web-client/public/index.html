@@ -218,6 +218,12 @@
         margin-right: 6px; font-size: 0.68rem;
       }
       #detail-source { margin-left: 6px; color: #666; }
+      #detail-wiki-link {
+        margin-left: 6px; color: #666; text-decoration: none;
+        user-select: none; -webkit-user-select: none;
+      }
+      #detail-wiki-link:hover { color: #7eb8f7; }
+      #detail-wiki-link.hidden { display: none; }
       #detail-desc {
         margin-top: 6px; font-size: 0.73rem; color: #8a8a9a; line-height: 1.4;
         display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
@@ -227,7 +233,10 @@
       <div class="title"><a id="detail-link" href="#" target="_blank" rel="noopener noreferrer"></a></div>
       <button id="close-btn">×</button>
     </div>
-    <div class="meta"><span id="detail-cat"></span><span id="detail-years"></span><span id="detail-source"></span></div>
+    <div class="meta">
+      <span id="detail-cat"></span><span id="detail-years"></span><span id="detail-source"></span>
+      <a id="detail-wiki-link" href="#" target="_blank" rel="noopener noreferrer">Wikipedia ↗</a>
+    </div>
     <div id="detail-desc"></div>
   </template>
 

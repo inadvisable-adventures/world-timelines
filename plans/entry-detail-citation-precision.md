@@ -1,4 +1,4 @@
-# Bring the entry detail citation link up to date (TODO item 15)
+# Bring the entry detail citation link up to date (TODO item 15) — COMPLETED
 
 ## Summary
 
@@ -138,3 +138,41 @@ No schema or type changes.
    both work) for a QLever-sourced entry, and that no secondary link
    appears for wiki-dump or boundary-import entries. Same caveat as
    TODO items 12-14 if skipped.
+
+## Result
+
+Implemented exactly as designed; no deviations.
+
+- **`qlever-client.ts`**: `citationUrl`/`citationLabel` now built from
+  the entry's own `id` (already a Wikidata Q-id) instead of
+  `wikipediaTitle`. Verified live against the real QLever endpoint (not
+  just unit-level): querying `person`, 1800-1850, returned e.g. "James P.
+  Latta" with `citationUrl: https://www.wikidata.org/wiki/Q1000235`,
+  `citationLabel: Wikidata`, `wikipediaTitle: James P. Latta` still
+  populated for the secondary link.
+- **`entries.ts`**: `wikipediaTitle` now `CASE WHEN e.citation_url = ''
+  THEN e.title ELSE ''`. Verified via direct `/api/entries/by-ids` calls
+  against the running `local-concept-server` (rebuilt + restarted to
+  pick up the change): a wiki-dump entry ("Great Pyramid of Giza") kept
+  `wikipediaTitle: "Great Pyramid of Giza"` and `citationLabel:
+  "Wikipedia"` unchanged; the Great Wall of China entry (TODO 14) now
+  correctly returns `wikipediaTitle: ""` instead of the bogus
+  `"Great Wall of China"` it would previously have leaked (that string
+  isn't guaranteed to be a real enwiki title, and even where it
+  coincidentally is, this entry's actual source is OpenStreetMap, not
+  Wikipedia).
+- **`entry-detail.ts` / `index.html`**: added `#detail-wiki-link` to
+  `entry-detail-template`'s `.meta` row and wired it in `show()`/
+  `showLane()`, reusing the existing href-toggle idiom. Not visually
+  verified in a browser (no browser tool available this session, same
+  caveat as TODO items 12-14) — logic verified via the direct API/live-
+  query checks above (the three cases the condition needs to
+  distinguish — QLever/Wikidata-sourced, wiki-dump/Wikipedia-sourced,
+  and boundary-import — all now carry the right `wikipediaTitle`/
+  `citationLabel` combination for `ev.wikipediaTitle && ev.citationLabel
+  !== 'Wikipedia'` to resolve correctly).
+- **Verification performed**: `tsc --noEmit` clean in both `web-client/`
+  and `web-client/local-concept-server/`; `local-concept-server` rebuilt
+  and restarted; direct Postgres/API checks for both the wiki-dump and
+  boundary-import cases; a live `queryQLever` call against the real
+  public QLever endpoint for the Wikidata case.

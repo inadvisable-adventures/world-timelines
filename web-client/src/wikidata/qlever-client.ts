@@ -202,10 +202,15 @@ function bindingToEvent(b: SparqlBinding): HistoricalEvent | null {
     lastUpdated: new Date().toISOString(), // when we fetched it, not a Wikidata edit time — see plan
     // The Wikipedia page title, not the (possibly different) Wikidata
     // label — see plans/qlever-require-wikipedia-page.md. Required by the
-    // query itself (non-OPTIONAL join), so always present here.
+    // query itself (non-OPTIONAL join), so always present here. Used as a
+    // secondary cross-reference link (entry-detail.ts), not the primary
+    // citation below — see plans/entry-detail-citation-precision.md.
     wikipediaTitle: b.wikipediaTitle.value,
-    citationUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(b.wikipediaTitle.value)}`,
-    citationLabel: 'Wikipedia',
+    // The actual data source is Wikidata itself (this item's id, already
+    // a Q-id) — Wikipedia is only the required cross-reference above, not
+    // where the structured data (coordinates, dates, category) came from.
+    citationUrl: `https://www.wikidata.org/wiki/${id}`,
+    citationLabel: 'Wikidata',
   };
 }
 
