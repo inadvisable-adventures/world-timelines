@@ -28,3 +28,6 @@ test-data/
 # Local PostgreSQL cluster data + generated seed SQL (see db/README.md)
 db/.pgdata/
 db/.generated-seed.sql
+
+# Desk-specific
+**/__pycache__/
