@@ -1,0 +1,42 @@
+{
+  "widgets": [
+    {
+      "widget_id": "project_files",
+      "instance_id": "f94fb235",
+      "x": -1457.6640625,
+      "y": 0.953125,
+      "width": 360.0,
+      "height": 640.0,
+      "state": {},
+      "locked": false,
+      "placed_content_hash": null
+    },
+    {
+      "widget_id": "todo",
+      "instance_id": "91c4d29f",
+      "x": -1063.0,
+      "y": 16.0,
+      "width": 561.0,
+      "height": 560.0,
+      "state": {},
+      "locked": false,
+      "placed_content_hash": null
+    },
+    {
+      "widget_id": "claude",
+      "instance_id": "53f88327-a8bc-4826-987e-d729b06f4d2e",
+      "x": -506.3984375,
+      "y": -91.46484375,
+      "width": 720.0,
+      "height": 434.42578125,
+      "state": {},
+      "locked": false,
+      "placed_content_hash": null
+    }
+  ],
+  "pan_x": -734.9377488244513,
+  "pan_y": 400.27859534188866,
+  "scale": 0.7619692972578045,
+  "custom_widgets": [],
+  "file_type_registry": []
+}
